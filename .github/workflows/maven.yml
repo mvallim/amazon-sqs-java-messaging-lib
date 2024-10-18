@@ -98,7 +98,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Reset ${{ github.ref }} branch
         run: |
-          git fetch origin ${{ github.ref }}:${{ github.ref }}
           git reset --hard ${{ github.ref }}
       - uses: peter-evans/create-pull-request@v7
         with:
