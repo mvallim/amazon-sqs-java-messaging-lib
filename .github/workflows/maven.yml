@@ -96,13 +96,16 @@ jobs:
     # needs: [sonarcloud]
     steps:
       - uses: actions/checkout@v4
+      - name: Reset master branch
+        run: |
+          git fetch origin test:test
+          git reset --hard test
       - uses: peter-evans/create-pull-request@v7
         with:
           title: "Pulling ${{ github.ref }} into master"
           commit-message: "Automated PR"
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: xxx
-          base: ${{ github.ref_name }}
+          branch: master-promotion
           labels: automated pr
           assignees: mvallim
           reviewers: mvallim
