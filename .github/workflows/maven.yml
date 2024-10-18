@@ -102,7 +102,7 @@ jobs:
           commit-message: "Automated PR"
           token: ${{ secrets.GITHUB_TOKEN }}
           delete-branch: true
-          branch: test
+          branch: ${{ github.ref_name }}
           base: master
           labels: automated pr
           assignees: mvallim
