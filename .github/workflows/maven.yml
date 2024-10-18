@@ -96,10 +96,10 @@ jobs:
     # needs: [sonarcloud]
     steps:
       - uses: actions/checkout@v4
-      # - name: Reset master branch
-      #   run: |
-      #     git fetch origin master:master
-      #     git reset --hard master
+      - name: Reset ${{ github.ref }} branch
+        run: |
+          git fetch origin ${{ github.ref }}:${{ github.ref }}
+          git reset --hard ${{ github.ref }}
       - uses: peter-evans/create-pull-request@v7
         with:
           title: "Pulling ${{ github.ref }} into master"
