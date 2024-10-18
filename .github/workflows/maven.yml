@@ -101,7 +101,7 @@ jobs:
           title: "Pulling ${{ github.ref }} into master"
           commit-message: "Automated PR"
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: master
+          branch: xxx
           base: ${{ github.ref_name }}
           labels: automated pr
           assignees: mvallim
