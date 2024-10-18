@@ -98,8 +98,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Reset master branch
         run: |
-          git fetch origin test:test
-          git reset --hard test
+          git fetch origin ${{ github.ref_name }}:${{ github.ref_name }}
+          git reset --hard ${{ github.ref_name }}
       - uses: peter-evans/create-pull-request@v7
         with:
           title: "Pulling ${{ github.ref }} into master"
