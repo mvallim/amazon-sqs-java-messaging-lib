@@ -21,6 +21,7 @@
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		
+		<!-- Dependencies -->
 		<lombok.version>1.18.24</lombok.version>
 		<logback.version>1.3.14</logback.version>
 		<mockito.version>4.11.0</mockito.version>
@@ -34,6 +35,7 @@
 		<slf4j-api.version>2.0.6</slf4j-api.version>
 		<hamcrest.version>3.0</hamcrest.version>
 		
+		<!-- Plugins -->
 		<maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
 		<maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
 		<maven-deploy-plugin.version>3.0.0</maven-deploy-plugin.version>
@@ -45,13 +47,13 @@
 		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
 		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
 
+		<!-- Sonar -->
 		<sonar.organization>mvallim</sonar.organization>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
-		<sonar.login>${env.SONAR_TOKEN}</sonar.login>
+		<sonar.token>${env.SONAR_TOKEN}</sonar.token>
 		<sonar.projectKey>${project.artifactId}</sonar.projectKey>
 		<sonar.projectName>${project.artifactId}</sonar.projectName>
 		<sonar.projectVersion>${project.version}</sonar.projectVersion>
-		<sonar.projectBaseDir>.</sonar.projectBaseDir>
 		<sonar.sources>src/main/java</sonar.sources>
 		<sonar.tests>src/test/java</sonar.tests>
 		<sonar.inclusions>**/src/main/java/**</sonar.inclusions>
@@ -70,6 +72,14 @@
 			**/generated-test-sources/**,
 			**/test/**
 		</sonar.coverage.exclusions>
+		<sonar.modules>
+			amazon-sqs-java-messaging-lib-template,
+			amazon-sqs-java-messaging-lib-v1,
+			amazon-sqs-java-messaging-lib-v2
+		</sonar.modules>
+		<amazon-sqs-java-messaging-lib-template.sonar.projectName>com.github.mvallim:amazon-sqs-java-messaging-lib-template</amazon-sqs-java-messaging-lib-template.sonar.projectName>
+		<amazon-sqs-java-messaging-lib-v1.sonar.projectName>com.github.mvallim:amazon-sqs-java-messaging-lib-v1</amazon-sqs-java-messaging-lib-v1.sonar.projectName>
+		<amazon-sqs-java-messaging-lib-v2.sonar.projectName>com.github.mvallim:amazon-sqs-java-messaging-lib-v2</amazon-sqs-java-messaging-lib-v2.sonar.projectName>
 	</properties>
 
 	<modules>
