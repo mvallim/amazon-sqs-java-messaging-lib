@@ -29,28 +29,28 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSqsTemplate<C, R, O, E> {
 
-  private final AbstractAmazonSqsProducer<E> amazonSnsProducer;
+  private final AbstractAmazonSqsProducer<E> amazonSqsProducer;
 
-  private final AbstractAmazonSqsConsumer<C, R, O, E> amazonSnsConsumer;
+  private final AbstractAmazonSqsConsumer<C, R, O, E> amazonSqsConsumer;
 
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
-    return amazonSnsProducer.send(requestEntry);
+    return amazonSqsProducer.send(requestEntry);
   }
 
   public void shutdown() {
-    amazonSnsProducer.shutdown();
-    amazonSnsConsumer.shutdown();
+    amazonSqsProducer.shutdown();
+    amazonSqsConsumer.shutdown();
   }
 
   public CompletableFuture<Void> await() {
-    return amazonSnsConsumer.await();
+    return amazonSqsConsumer.await();
   }
 
-  protected static AmazonSqsThreadPoolExecutor getAmazonSnsThreadPoolExecutor(final QueueProperty topicProperty) {
-    if (topicProperty.isFifo()) {
+  protected static AmazonSqsThreadPoolExecutor getAmazonSqsThreadPoolExecutor(final QueueProperty queueProperty) {
+    if (queueProperty.isFifo()) {
       return new AmazonSqsThreadPoolExecutor(1);
     } else {
-      return new AmazonSqsThreadPoolExecutor(topicProperty.getMaximumPoolSize());
+      return new AmazonSqsThreadPoolExecutor(queueProperty.getMaximumPoolSize());
     }
   }
 

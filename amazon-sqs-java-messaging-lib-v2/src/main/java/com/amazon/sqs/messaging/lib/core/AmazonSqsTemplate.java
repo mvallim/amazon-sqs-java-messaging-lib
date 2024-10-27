@@ -43,7 +43,7 @@ public class AmazonSqsTemplate<E> extends AbstractAmazonSqsTemplate<SqsClient, S
       final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
     super(
       new AmazonSqsProducer<>(pendingRequests, topicRequests, Executors.newSingleThreadExecutor()),
-      new AmazonSqsConsumer<>(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, getAmazonSnsThreadPoolExecutor(queueProperty), publishDecorator)
+      new AmazonSqsConsumer<>(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, getAmazonSqsThreadPoolExecutor(queueProperty), publishDecorator)
     );
   }
 

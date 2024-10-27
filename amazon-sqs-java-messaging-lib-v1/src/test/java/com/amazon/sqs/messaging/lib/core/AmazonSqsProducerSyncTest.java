@@ -53,7 +53,7 @@ import com.amazonaws.services.sqs.model.SendMessageBatchResultEntry;
 @ExtendWith(MockitoExtension.class)
 class AmazonSqsProducerSyncTest {
 
-  private AmazonSqsTemplate<Object> snsTemplate;
+  private AmazonSqsTemplate<Object> sqsTemplate;
 
   @Mock
   private AmazonSQS amazonSQS;
@@ -68,7 +68,7 @@ class AmazonSqsProducerSyncTest {
       .queueUrl("http://localhost/000000000000/queue")
       .build();
 
-    snsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty);
+    sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty);
   }
 
   @Test
@@ -83,12 +83,12 @@ class AmazonSqsProducerSyncTest {
 
     when(amazonSQS.sendMessageBatch(any())).thenReturn(publishBatchResult);
 
-    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
+    sqsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(amazonSQS, timeout(10000).times(1)).sendMessageBatch(any());
     }).join();
 
@@ -106,12 +106,12 @@ class AmazonSqsProducerSyncTest {
 
     when(amazonSQS.sendMessageBatch(any())).thenReturn(publishBatchResult);
 
-    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(null, result -> {
+    sqsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(null, result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(amazonSQS, timeout(10000).times(1)).sendMessageBatch(any());
     }).join();
 
@@ -133,10 +133,10 @@ class AmazonSqsProducerSyncTest {
     }));
 
     entries(30000).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(successCallback);
+      sqsTemplate.send(entry).addCallback(successCallback);
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(successCallback, timeout(300000).times(30000)).accept(any());
       verify(amazonSQS, atLeastOnce()).sendMessageBatch(any());
     }).join();
@@ -158,10 +158,10 @@ class AmazonSqsProducerSyncTest {
     }));
 
     entries(30000).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);
+      sqsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(failureCallback, timeout(300000).times(30000)).accept(any());
       verify(amazonSQS, atLeastOnce()).sendMessageBatch(any());
     }).join();
@@ -173,12 +173,12 @@ class AmazonSqsProducerSyncTest {
 
     when(amazonSQS.sendMessageBatch(any(SendMessageBatchRequest.class))).thenThrow(new RuntimeException());
 
-    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
+    sqsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(amazonSQS, timeout(10000).times(1)).sendMessageBatch(any(SendMessageBatchRequest.class));
     }).join();
 
@@ -190,12 +190,12 @@ class AmazonSqsProducerSyncTest {
 
     when(amazonSQS.sendMessageBatch(any(SendMessageBatchRequest.class))).thenThrow(new AmazonServiceException("error"));
 
-    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
+    sqsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(amazonSQS, timeout(10000).times(1)).sendMessageBatch(any(SendMessageBatchRequest.class));
     }).join();
 
