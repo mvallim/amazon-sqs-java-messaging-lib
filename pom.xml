@@ -54,11 +54,13 @@
 		<sonar.projectKey>${project.artifactId}</sonar.projectKey>
 		<sonar.projectName>${project.artifactId}</sonar.projectName>
 		<sonar.projectVersion>${project.version}</sonar.projectVersion>
+		<sonar.projectBaseDir>.</sonar.projectBaseDir>
+		<sonar.coverage.jacoco.xmlReportPaths>../site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.sources>src/main/java</sonar.sources>
 		<sonar.tests>src/test/java</sonar.tests>
 		<sonar.inclusions>**/src/main/java/**</sonar.inclusions>
 		<sonar.exclusions>**/src/test/java/**</sonar.exclusions>
-		<sonar.java.binaries>target</sonar.java.binaries>
+		<sonar.java.binaries>target/classes</sonar.java.binaries>
 		<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
 		<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 		<sonar.coverage.exclusions>
@@ -396,15 +398,28 @@
 							<goal>prepare-agent</goal>
 						</goals>
 						<configuration>
+							<append>true</append>
 							<propertyName>jacoco.argLine</propertyName>
+							<destFile>../target/jacoco.exe</destFile>
 						</configuration>
 					</execution>
 					<execution>
 						<id>report</id>
-						<phase>verify</phase>
+						<phase>prepare-package</phase>
 						<goals>
 							<goal>report</goal>
 						</goals>
+					</execution>
+					<execution>
+						<id>post-unit-test</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+						<configuration>
+							<dataFile>../target/jacoco.exe</dataFile>
+							<outputDirectory>../target/site/${project.artifactId}</outputDirectory>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
