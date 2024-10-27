@@ -30,7 +30,7 @@
 		<jmh.version>1.37</jmh.version>
 		<awaitility.version>4.2.0</awaitility.version>
 		<assertj-core.version>3.24.2</assertj-core.version>
-		<commons-lang3.version>3.12.0</commons-lang3.version>
+		<commons-lang3.version>3.17.0</commons-lang3.version>
 		<commons-collections4.version>4.4</commons-collections4.version>
 		<slf4j-api.version>2.0.6</slf4j-api.version>
 		<hamcrest.version>3.0</hamcrest.version>
@@ -55,33 +55,20 @@
 		<sonar.projectName>${project.artifactId}</sonar.projectName>
 		<sonar.projectVersion>${project.version}</sonar.projectVersion>
 		<sonar.projectBaseDir>.</sonar.projectBaseDir>
-		<sonar.coverage.jacoco.xmlReportPaths>../site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.sources>src/main/java</sonar.sources>
 		<sonar.tests>src/test/java</sonar.tests>
-		<sonar.inclusions>**/src/main/java/**</sonar.inclusions>
-		<sonar.exclusions>**/src/test/java/**</sonar.exclusions>
-		<sonar.java.binaries>target/classes</sonar.java.binaries>
+		<sonar.inclusions>**/main/**</sonar.inclusions>
+		<sonar.exclusions>**/test/**</sonar.exclusions>
 		<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
 		<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 		<sonar.coverage.exclusions>
-			**/AbstractAmazonSqsConsumer.**,
-			**/AbstractAmazonSqsProducer.**,
-			**/AbstractAmazonSqsTemplate.**,
-			**/AbstractMessageAttributes.**,
 			**/model/**,
 			**/package-info.**,
 			**/generated-sources/**,
 			**/generated-test-sources/**,
 			**/test/**
 		</sonar.coverage.exclusions>
-		<sonar.modules>
-			amazon-sqs-java-messaging-lib-template,
-			amazon-sqs-java-messaging-lib-v1,
-			amazon-sqs-java-messaging-lib-v2
-		</sonar.modules>
-		<amazon-sqs-java-messaging-lib-template.sonar.projectName>com.github.mvallim:amazon-sqs-java-messaging-lib-template</amazon-sqs-java-messaging-lib-template.sonar.projectName>
-		<amazon-sqs-java-messaging-lib-v1.sonar.projectName>com.github.mvallim:amazon-sqs-java-messaging-lib-v1</amazon-sqs-java-messaging-lib-v1.sonar.projectName>
-		<amazon-sqs-java-messaging-lib-v2.sonar.projectName>com.github.mvallim:amazon-sqs-java-messaging-lib-v2</amazon-sqs-java-messaging-lib-v2.sonar.projectName>
 	</properties>
 
 	<modules>
@@ -380,10 +367,6 @@
 						<format>XML</format>
 					</formats>
 					<excludes>
-						<exclude>**/AbstractAmazonSqsConsumer.**</exclude>
-						<exclude>**/AbstractAmazonSqsProducer.**</exclude>
-						<exclude>**/AbstractAmazonSqsTemplate.**</exclude>
-						<exclude>**/AbstractMessageAttributes.**</exclude>
 						<exclude>**/model/**</exclude>
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
