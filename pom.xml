@@ -21,6 +21,7 @@
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		
+		<!-- Dependencies -->
 		<lombok.version>1.18.24</lombok.version>
 		<logback.version>1.3.14</logback.version>
 		<mockito.version>4.11.0</mockito.version>
@@ -29,11 +30,12 @@
 		<jmh.version>1.37</jmh.version>
 		<awaitility.version>4.2.0</awaitility.version>
 		<assertj-core.version>3.24.2</assertj-core.version>
-		<commons-lang3.version>3.12.0</commons-lang3.version>
+		<commons-lang3.version>3.17.0</commons-lang3.version>
 		<commons-collections4.version>4.4</commons-collections4.version>
 		<slf4j-api.version>2.0.6</slf4j-api.version>
 		<hamcrest.version>3.0</hamcrest.version>
 		
+		<!-- Plugins -->
 		<maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
 		<maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
 		<maven-deploy-plugin.version>3.0.0</maven-deploy-plugin.version>
@@ -43,22 +45,30 @@
 		<maven-source-plugin.version>3.2.1</maven-source-plugin.version>
 		<maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
 		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
-		
+		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
+
+		<!-- Sonar -->
+		<sonar.organization>mvallim</sonar.organization>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+		<sonar.token>${env.SONAR_TOKEN}</sonar.token>
+		<sonar.projectKey>${project.artifactId}</sonar.projectKey>
+		<sonar.projectName>${project.artifactId}</sonar.projectName>
+		<sonar.projectVersion>${project.version}</sonar.projectVersion>
+		<sonar.projectBaseDir>.</sonar.projectBaseDir>
+		<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.sources>src/main/java</sonar.sources>
+		<sonar.tests>src/test/java</sonar.tests>
+		<sonar.inclusions>**/main/**</sonar.inclusions>
+		<sonar.exclusions>**/test/**</sonar.exclusions>
+		<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
+		<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 		<sonar.coverage.exclusions>
-			**/AbstractAmazonSqsConsumer.**,
-			**/AbstractAmazonSqsProducer.**,
-			**/AbstractAmazonSqsTemplate.**,
-			**/AbstractMessageAttributes.**,
 			**/model/**,
 			**/package-info.**,
 			**/generated-sources/**,
 			**/generated-test-sources/**,
 			**/test/**
 		</sonar.coverage.exclusions>
-		
-		<sonar.exclusions>
-			**/test/**
-		</sonar.exclusions>
 	</properties>
 
 	<modules>
@@ -288,6 +298,11 @@
 					<artifactId>jacoco-maven-plugin</artifactId>
 					<version>${jacoco-maven-plugin.version}</version>
 				</plugin>
+				<plugin>
+					<groupId>org.sonarsource.scanner.maven</groupId>
+					<artifactId>sonar-maven-plugin</artifactId>
+					<version>${sonar-maven-plugin.version}</version>
+				  </plugin>
 			</plugins>
 		</pluginManagement>
 
@@ -352,10 +367,6 @@
 						<format>XML</format>
 					</formats>
 					<excludes>
-						<exclude>**/AbstractAmazonSqsConsumer.**</exclude>
-						<exclude>**/AbstractAmazonSqsProducer.**</exclude>
-						<exclude>**/AbstractAmazonSqsTemplate.**</exclude>
-						<exclude>**/AbstractMessageAttributes.**</exclude>
 						<exclude>**/model/**</exclude>
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
@@ -370,17 +381,34 @@
 							<goal>prepare-agent</goal>
 						</goals>
 						<configuration>
+							<append>true</append>
 							<propertyName>jacoco.argLine</propertyName>
+							<destFile>../target/jacoco.exe</destFile>
 						</configuration>
 					</execution>
 					<execution>
 						<id>report</id>
-						<phase>verify</phase>
+						<phase>prepare-package</phase>
 						<goals>
 							<goal>report</goal>
 						</goals>
 					</execution>
+					<execution>
+						<id>post-unit-test</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+						<configuration>
+							<dataFile>../target/jacoco.exe</dataFile>
+							<outputDirectory>../target/site/${project.artifactId}</outputDirectory>
+						</configuration>
+					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.sonarsource.scanner.maven</groupId>
+				<artifactId>sonar-maven-plugin</artifactId>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
