@@ -43,7 +43,22 @@
 		<maven-source-plugin.version>3.2.1</maven-source-plugin.version>
 		<maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
 		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
-		
+		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
+
+		<sonar.organization>mvallim</sonar.organization>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+		<sonar.login>${env.SONAR_TOKEN}</sonar.login>
+		<sonar.projectKey>${project.artifactId}</sonar.projectKey>
+		<sonar.projectName>${project.artifactId}</sonar.projectName>
+		<sonar.projectVersion>${project.version}</sonar.projectVersion>
+		<sonar.projectBaseDir>.</sonar.projectBaseDir>
+		<sonar.sources>src/main/java</sonar.sources>
+		<sonar.tests>src/test/java</sonar.tests>
+		<sonar.inclusions>**/src/main/java/**</sonar.inclusions>
+		<sonar.exclusions>**/src/test/java/**</sonar.exclusions>
+		<sonar.java.binaries>target</sonar.java.binaries>
+		<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
+		<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 		<sonar.coverage.exclusions>
 			**/AbstractAmazonSqsConsumer.**,
 			**/AbstractAmazonSqsProducer.**,
@@ -55,10 +70,6 @@
 			**/generated-test-sources/**,
 			**/test/**
 		</sonar.coverage.exclusions>
-		
-		<sonar.exclusions>
-			**/test/**
-		</sonar.exclusions>
 	</properties>
 
 	<modules>
@@ -288,6 +299,11 @@
 					<artifactId>jacoco-maven-plugin</artifactId>
 					<version>${jacoco-maven-plugin.version}</version>
 				</plugin>
+				<plugin>
+					<groupId>org.sonarsource.scanner.maven</groupId>
+					<artifactId>sonar-maven-plugin</artifactId>
+					<version>${sonar-maven-plugin.version}</version>
+				  </plugin>
 			</plugins>
 		</pluginManagement>
 
@@ -381,6 +397,10 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.sonarsource.scanner.maven</groupId>
+				<artifactId>sonar-maven-plugin</artifactId>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
