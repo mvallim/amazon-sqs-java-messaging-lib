@@ -8,7 +8,6 @@ import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
 
-import com.amazon.sqs.messaging.lib.core.ListenableFutureRegistry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 

@@ -37,7 +37,7 @@ public final class PublishRequestBuilder {
 
     private BiFunction<String, List<E>, R> supplier;
 
-    private String topicArn;
+    private String queueUrl;
 
     private List<E> entries;
 
@@ -46,8 +46,8 @@ public final class PublishRequestBuilder {
       return this;
     }
 
-    public Builder<R, E> topicArn(final String topicArn) {
-      this.topicArn = topicArn;
+    public Builder<R, E> topicArn(final String queueUrl) {
+      this.queueUrl = queueUrl;
       return this;
     }
 
@@ -57,7 +57,7 @@ public final class PublishRequestBuilder {
     }
 
     public R build() {
-      return supplier.apply(topicArn, entries);
+      return supplier.apply(queueUrl, entries);
     }
   }
 

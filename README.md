@@ -7,7 +7,7 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sqs-java-messaging-lib/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sqs-java-messaging-lib)
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
-The Amazon SqS Java Messaging Library holds the compatible classes, that are used for communicating with Amazon Simple Notification Service. This project builds on top of the AWS SDK for Java to use Amazon SqS provider for the messaging applications without running any additional software.
+The Amazon SQS Java Messaging Library holds the compatible classes, that are used for communicating with Amazon Simple Queue Service. This project builds on top of the AWS SDK for Java to use Amazon SQS provider for the messaging applications without running any additional software.
 
 > The batch size should be chosen based on the size of individual messages and available network bandwidth as well as the observed latency and throughput improvements based on the real life load. These are configured to some sensible defaults assuming smaller message sizes and the optimal batch size for server side processing.
 
@@ -41,7 +41,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sqs-java-messaging-lib-v1</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -51,7 +51,7 @@ You can pull it from the central Maven repositories:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sqs-java-messaging-lib-v2</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -73,35 +73,35 @@ If you want to try a snapshot version, add the following repository:
 ##### For AWS SDK v1
 
 ```groovy
-implementation 'com.github.mvallim:amazon-sqs-java-messaging-lib-v1:1.0.6'
+implementation 'com.github.mvallim:amazon-sqs-java-messaging-lib-v1:1.0.0'
 ```
 
 ##### For AWS SDK v2
 
 ```groovy
-implementation 'com.github.mvallim:amazon-sqs-java-messaging-lib-v2:1.0.6'
+implementation 'com.github.mvallim:amazon-sqs-java-messaging-lib-v2:1.0.0'
 ```
 
 If you want to try a snapshot version, add the following repository:
 
 ```groovy
 repositories {
-    maven {
-        url "https://oss.sonatype.org/content/repositories/snapshots"
-    }
+  maven {
+    url "https://oss.sonatype.org/content/repositories/snapshots"
+  }
 }
 ```
 
 ## 1.2 Usage
 
-### Properties `TopicProperty`
+### Properties `QueueProperty`
 
 | Property              | Type        | Description                                                                    |
 |-----------------------|-------------|--------------------------------------------------------------------------------|
-| **`fifo`**            | **boolean** | refers if SqS is fifo or not.                                                  |
+| **`fifo`**            | **boolean** | refers if SQS is fifo or not.                                                  |
 | **`maximumPoolSize`** | **int**     | refers maximum threads for producer.                                           |
-| **`topicArn`**        | **string**  | refers topic arn name.                                                         |
-| **`linger`**          | **int**     | refers to the time to wait before sending messages out to SqS.                 |
+| **`queueUrl`**        | **string**  | refers queue url.                                                              |
+| **`linger`**          | **int**     | refers to the time to wait before sending messages out to SQS.                 |
 | **`maxBatchSize`**    | **int**     | refers to the maximum amount of data to be collected before sending the batch. |
 
 **NOTICE**: the buffer of message store in memory is calculate using **`maximumPoolSize`** * **`maxBatchSize`** huge values demand huge memory.
@@ -109,60 +109,60 @@ repositories {
 #### Determining the type of `BlockingQueue` with its maximum capacity
 
 ```java
-final TopicProperty topicProperty = TopicProperty.builder()
+final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(false)
   .linger(100)
   .maxBatchSize(10)
   .maximumPoolSize(20)
-  .topicArn("arn:aws:sqs:us-east-2:000000000000:topic")
+  .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
   
 final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(
-  amazonSqS, topicProperty, new LinkedBlockingQueue<>(100));
+  amazonSqS, QueueProperty, new LinkedBlockingQueue<>(100));
 ```
 
 #### Using an `ObjectMapper` other than the default
 
 ```java
-final TopicProperty topicProperty = TopicProperty.builder()
+final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(false)
   .linger(100)
   .maxBatchSize(10)
   .maximumPoolSize(20)
-  .topicArn("arn:aws:sqs:us-east-2:000000000000:topic")
+  .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
   
 final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(
-  amazonSqS, topicProperty, new ObjectMapper<>());
+  amazonSqS, queueProperty, new ObjectMapper<>());
 ```
 
 #### Using an `ObjectMapper` and a `BlockingQueue` other than the default
 
 ```java
-final TopicProperty topicProperty = TopicProperty.builder()
+final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(false)
   .linger(100)
   .maxBatchSize(10)
   .maximumPoolSize(20)
-  .topicArn("arn:aws:sqs:us-east-2:000000000000:topic")
+  .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
   
 final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(
-  amazonSqS, topicProperty, new LinkedBlockingQueue<>(100), new ObjectMapper<>());
+  amazonSqS, queueProperty, new LinkedBlockingQueue<>(100), new ObjectMapper<>());
 ```
 
 ### Standard SQS
 
 ```java
-final TopicProperty topicProperty = TopicProperty.builder()
+final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(false)
   .linger(100)
   .maxBatchSize(10)
   .maximumPoolSize(20)
-  .topicArn("arn:aws:sqs:us-east-2:000000000000:topic")
+  .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
 
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, topicProperty);
+final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, queueProperty);
 
 final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withValue(new MyMessage())
@@ -175,15 +175,15 @@ sqsTemplate.send(requestEntry);
 ### FIFO SQS
 
 ```java
-final TopicProperty topicProperty = TopicProperty.builder()
+final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(true)
   .linger(100)
   .maxBatchSize(10)
   .maximumPoolSize(20)
-  .topicArn("arn:aws:sqs:us-east-2:000000000000:topic")
+  .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
 
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, topicProperty);
+final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, queueProperty);
 
 final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withValue(new MyMessage())
@@ -198,15 +198,15 @@ sqsTemplate.send(requestEntry);
 ### Send With Callback
 
 ```java
-final TopicProperty topicProperty = TopicProperty.builder()
+final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(true)
   .linger(100)
   .maxBatchSize(10)
   .maximumPoolSize(20)
-  .topicArn("arn:aws:sqs:us-east-2:000000000000:topic")
+  .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
 
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, topicProperty);
+final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, queueProperty);
 
 final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withValue(new MyMessage())
@@ -228,15 +228,15 @@ sqsTemplate.send(requestEntry).addCallback(result -> {
 ### Send And Wait
 
 ```java
-final TopicProperty topicProperty = TopicProperty.builder()
+final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(true)
   .linger(100)
   .maxBatchSize(10)
   .maximumPoolSize(20)
-  .topicArn("arn:aws:sqs:us-east-2:000000000000:topic")
+  .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
 
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, topicProperty);
+final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, queueProperty);
 
 final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withValue(new MyMessage())
@@ -256,15 +256,15 @@ sqsTemplate.await().join();
 ### Send And Shutdown
 
 ```java
-final TopicProperty topicProperty = TopicProperty.builder()
+final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(true)
   .linger(100)
   .maxBatchSize(10)
   .maximumPoolSize(20)
-  .topicArn("arn:aws:sqs:us-east-2:000000000000:topic")
+  .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
 
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, topicProperty);
+final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, queueProperty);
 
 final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withValue(new MyMessage())

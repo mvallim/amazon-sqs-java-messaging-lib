@@ -54,13 +54,13 @@ import com.amazonaws.services.sqs.model.SendMessageBatchResultEntry;
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 public class AmazonSqsTemplateBenchmark {
 
-  private AmazonSqsTemplate<Integer> amazonSnsTemplate;
+  private AmazonSqsTemplate<Integer> amazonSqsTemplate;
 
   @Setup
   public void setup() {
-    final AmazonSQS amazonSNS = mock(AmazonSQS.class);
+    final AmazonSQS amazonSQS = mock(AmazonSQS.class);
 
-    when(amazonSNS.sendMessageBatch(any())).thenAnswer(invocation -> {
+    when(amazonSQS.sendMessageBatch(any())).thenAnswer(invocation -> {
       final SendMessageBatchRequest request = invocation.getArgument(0, SendMessageBatchRequest.class);
       final List<SendMessageBatchResultEntry> resultEntries = request.getEntries().stream()
         .map(entry -> new SendMessageBatchResultEntry().withId(entry.getId()))
@@ -76,26 +76,26 @@ public class AmazonSqsTemplateBenchmark {
       .queueUrl("http://localhost/000000000000/queue")
       .build();
 
-    amazonSnsTemplate = new AmazonSqsTemplate<>(amazonSNS, topicProperty);
+    amazonSqsTemplate = new AmazonSqsTemplate<>(amazonSQS, topicProperty);
   }
 
   @TearDown
   public void tearDown() {
-    amazonSnsTemplate.await().join();
-    amazonSnsTemplate.shutdown();
+    amazonSqsTemplate.await().join();
+    amazonSqsTemplate.shutdown();
   }
 
   @Benchmark
   @OperationsPerInvocation(1)
   public void testSend_1() throws InterruptedException {
-    amazonSnsTemplate.send(RequestEntry.<Integer>builder().withValue(1).build());
+    amazonSqsTemplate.send(RequestEntry.<Integer>builder().withValue(1).build());
   }
 
   @Benchmark
   @OperationsPerInvocation(10)
   public void testSend_10() throws InterruptedException {
     for (int i = 0; i < 10; i++) {
-      amazonSnsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
+      amazonSqsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
     }
   }
 
@@ -103,7 +103,7 @@ public class AmazonSqsTemplateBenchmark {
   @OperationsPerInvocation(100)
   public void testSend_100() throws InterruptedException {
     for (int i = 0; i < 100; i++) {
-      amazonSnsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
+      amazonSqsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
     }
   }
 
@@ -111,7 +111,7 @@ public class AmazonSqsTemplateBenchmark {
   @OperationsPerInvocation(1000)
   public void testSend_1000() throws InterruptedException {
     for (int i = 0; i < 1000; i++) {
-      amazonSnsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
+      amazonSqsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
     }
   }
 
@@ -119,7 +119,7 @@ public class AmazonSqsTemplateBenchmark {
   @OperationsPerInvocation(10000)
   public void testSend_10000() throws InterruptedException {
     for (int i = 0; i < 10000; i++) {
-      amazonSnsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
+      amazonSqsTemplate.send(RequestEntry.<Integer>builder().withValue(i).build());
     }
   }
 

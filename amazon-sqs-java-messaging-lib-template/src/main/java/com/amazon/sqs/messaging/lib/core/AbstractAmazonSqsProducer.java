@@ -41,7 +41,7 @@ abstract class AbstractAmazonSqsProducer<E> {
 
   private final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests;
 
-  private final BlockingQueue<RequestEntry<E>> topicRequests;
+  private final BlockingQueue<RequestEntry<E>> queueRequests;
 
   private final ExecutorService executorService;
 
@@ -66,7 +66,7 @@ abstract class AbstractAmazonSqsProducer<E> {
   private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> enqueueRequest(final RequestEntry<E> requestEntry) {
     final ListenableFutureRegistry trackPendingRequest = new ListenableFutureRegistry();
     pendingRequests.put(requestEntry.getId(), trackPendingRequest);
-    topicRequests.put(requestEntry);
+    queueRequests.put(requestEntry);
     return trackPendingRequest;
   }
 

@@ -55,7 +55,7 @@ import com.amazonaws.services.sqs.model.SendMessageBatchResultEntry;
 @ExtendWith(MockitoExtension.class)
 class AmazonSqsProducerAsyncTest {
 
-  private AmazonSqsTemplate<Object> snsTemplate;
+  private AmazonSqsTemplate<Object> sqsTemplate;
 
   @Mock
   private AmazonSQS amazonSQS;
@@ -69,7 +69,7 @@ class AmazonSqsProducerAsyncTest {
       .maximumPoolSize(10)
       .queueUrl("http://localhost/000000000000/queue")
       .build();
-    snsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty, new RingBufferBlockingQueue<>(1024));
+    sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty, new RingBufferBlockingQueue<>(1024));
   }
 
   @Test
@@ -84,13 +84,13 @@ class AmazonSqsProducerAsyncTest {
 
     when(amazonSQS.sendMessageBatch(any())).thenReturn(publishBatchResult);
 
-    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
+    sqsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> {
-      snsTemplate.shutdown();
+    sqsTemplate.await().thenAccept(result -> {
+      sqsTemplate.shutdown();
       verify(amazonSQS, timeout(10000).times(1)).sendMessageBatch(any());
     }).join();
 
@@ -108,12 +108,12 @@ class AmazonSqsProducerAsyncTest {
 
     when(amazonSQS.sendMessageBatch(any())).thenReturn(publishBatchResult);
 
-    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(null, result -> {
+    sqsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(null, result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(amazonSQS, timeout(10000).times(1)).sendMessageBatch(any());
     }).join();
 
@@ -135,10 +135,10 @@ class AmazonSqsProducerAsyncTest {
     }));
 
     entries(30000).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(successCallback);
+      sqsTemplate.send(entry).addCallback(successCallback);
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(successCallback, timeout(300000).times(30000)).accept(any());
       verify(amazonSQS, atLeastOnce()).sendMessageBatch(any());
     }).join();
@@ -160,10 +160,10 @@ class AmazonSqsProducerAsyncTest {
     }));
 
     entries(30000).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);
+      sqsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(failureCallback, timeout(300000).times(30000)).accept(any());
       verify(amazonSQS, atLeastOnce()).sendMessageBatch(any());
     }).join();
@@ -175,12 +175,12 @@ class AmazonSqsProducerAsyncTest {
 
     when(amazonSQS.sendMessageBatch(any(SendMessageBatchRequest.class))).thenThrow(new RuntimeException());
 
-    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
+    sqsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(amazonSQS, timeout(10000).times(1)).sendMessageBatch(any(SendMessageBatchRequest.class));
     }).join();
 
@@ -192,12 +192,12 @@ class AmazonSqsProducerAsyncTest {
 
     when(amazonSQS.sendMessageBatch(any(SendMessageBatchRequest.class))).thenThrow(new AmazonServiceException("error"));
 
-    snsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
+    sqsTemplate.send(RequestEntry.builder().withId(id).build()).addCallback(result -> {
       assertThat(result, notNullValue());
       assertThat(result.getId(), is(id));
     });
 
-    snsTemplate.await().thenAccept(result -> {
+    sqsTemplate.await().thenAccept(result -> {
       verify(amazonSQS, timeout(10000).times(1)).sendMessageBatch(any(SendMessageBatchRequest.class));
     }).join();
 
@@ -213,7 +213,7 @@ class AmazonSqsProducerAsyncTest {
         .queueUrl("http://localhost/000000000000/queue")
         .build();
 
-    final AmazonSqsTemplate<Object> snsTemplate = new AmazonSqsTemplate<>(amazonSQS, topicProperty);
+    final AmazonSqsTemplate<Object> sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, topicProperty);
 
     when(amazonSQS.sendMessageBatch(any())).thenAnswer(invocation -> {
       while (true) {
@@ -226,7 +226,7 @@ class AmazonSqsProducerAsyncTest {
     }));
 
     entries(2).forEach(entry -> {
-      snsTemplate.send(entry).addCallback(null, failureCallback);;
+      sqsTemplate.send(entry).addCallback(null, failureCallback);;
     });
 
     verify(failureCallback, timeout(40000).times(1)).accept(any());

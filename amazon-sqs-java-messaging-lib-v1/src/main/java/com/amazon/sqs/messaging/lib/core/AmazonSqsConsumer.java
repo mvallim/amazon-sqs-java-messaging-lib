@@ -49,13 +49,13 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<AmazonSQS, SendMess
 
   public AmazonSqsConsumer(
     final AmazonSQS amazonSqsClient,
-    final QueueProperty topicProperty,
+    final QueueProperty queueProperty,
     final ObjectMapper objectMapper,
     final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
     final BlockingQueue<RequestEntry<E>> topicRequests,
     final ExecutorService executorService,
     final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
-    super(amazonSqsClient, topicProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator);
+    super(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator);
   }
 
   @Override
