@@ -238,7 +238,7 @@ class AmazonSqsProducerAsyncTest {
 
     for (int i = 0; i < amount; i++) {
       entries.add(RequestEntry.builder()
-        .withId(RandomStringUtils.randomAlphabetic(36))
+        .withId(RandomStringUtils.secure().nextAlphabetic(36))
         .withGroupId(UUID.randomUUID().toString())
         .withDeduplicationId(UUID.randomUUID().toString())
         .build());

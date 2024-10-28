@@ -1,0 +1,24 @@
+name: Build and Pull Request
+
+on:
+  push:
+      branches:
+      - release**
+      - feature**
+      - fix**
+      paths-ignore:
+      - "**/README.md"
+      - "**/CONTRIBUTING.md"
+      - "**/CONTRIBUTORS.txt"
+      - "**/LICENSE"
+
+jobs:
+  ci:
+    uses: ./.github/workflows/maven-ci.yml
+    secrets: inherit
+
+  gates:
+    uses: ./.github/workflows/gates.yml
+    if: success()
+    needs: ci
+    secrets: inherit
