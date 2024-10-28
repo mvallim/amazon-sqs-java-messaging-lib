@@ -12,6 +12,10 @@ on:
       - "**/CONTRIBUTORS.txt"
       - "**/LICENSE"
 
+permissions:
+  actions: read
+  security-events: write
+
 jobs:
   ci:
     uses: ./.github/workflows/maven-ci.yml
