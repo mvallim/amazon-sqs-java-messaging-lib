@@ -14,7 +14,7 @@ jobs:
       if: startsWith(github.ref, 'refs/heads/feature')
       uses: peter-evans/create-pull-request@v7
       with:
-        token: ${{ secrets.GH_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
         committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
         author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
         commit-message: Auto Pull Request
@@ -27,7 +27,7 @@ jobs:
       if: startsWith(github.ref, 'refs/heads/fix')
       uses: peter-evans/create-pull-request@v7
       with:
-        token: ${{ secrets.GH_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
         committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
         author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
         commit-message: Auto Pull Request
