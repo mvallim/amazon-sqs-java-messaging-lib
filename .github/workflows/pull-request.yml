@@ -22,6 +22,8 @@ jobs:
         branch: ${{ github.ref }}
         base: master
         labels: automatic,feature
+        assignees: ${{ github.actor }}
+        reviewers: mvallim
 
     - name: Create Pull Request (fix)
       if: startsWith(github.ref, 'refs/heads/fix')
@@ -35,3 +37,5 @@ jobs:
         branch: ${{ github.ref }}
         base: master
         labels: automatic,fix
+        assignees: ${{ github.actor }}
+        reviewers: mvallim
