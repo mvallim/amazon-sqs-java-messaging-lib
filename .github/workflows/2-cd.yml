@@ -1,0 +1,16 @@
+name: Publish && Release
+
+on:
+  push:
+      branches:
+      - master
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  snapshot:
+    uses: ./.github/workflows/2.1-snapshot.yml
+    secrets: inherit
+
