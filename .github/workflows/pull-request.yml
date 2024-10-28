@@ -1,29 +1,18 @@
-name: Build and Pull Request
+name: Create Pull Request
 
 on:
-  push:
-      branches:
-      - release**
-      - feature**
-      - fix**
-      paths-ignore:
-      - "**/README.md"
-      - "**/CONTRIBUTING.md"
-      - "**/CONTRIBUTORS.txt"
-      - "**/LICENSE"
-
-permissions:
-  contents: read
-  actions: read
-  security-events: write
+  workflow_call:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/maven-ci.yml
-    secrets: inherit
+  open-pr:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-  gates:
-    uses: ./.github/workflows/gates.yml
-    if: success()
-    needs: ci
-    secrets: inherit
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v7
+      with:
+        branch: release
+        labels: automated pr
+        draft: false
