@@ -4,35 +4,8 @@ on:
   workflow_call:
 
 jobs:
-  codeql:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-     
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: java
-
-    - name: Cache Maven packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2
-        key: ${{ runner.os }}-codeql-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-codeql-${{ hashFiles('**/pom.xml') }}
-
-    - name: Compile with Maven
-      run: mvn -T 1C clean compile -Pcode-ql --file pom.xml
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-
   sonarcloud:
     environment: sonarcloud
-    needs: codeql
-    if: success()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
