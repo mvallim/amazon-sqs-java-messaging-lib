@@ -3,7 +3,6 @@ name: Build and Pull Request
 on:
   push:
       branches:
-      - release**
       - feature**
       - fix**
       paths-ignore:

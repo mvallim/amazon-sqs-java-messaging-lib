@@ -10,10 +10,18 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v7
+    - name: Create Pull Request (feature)
+      if: startsWith(github.ref, 'refs/heads/feature')
+      uses: devops-infra/action-pull-request@v0.5.5
       with:
-        base: master
-        branch: release
-        labels: automated pr
-        draft: false
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        label: automatic,feature
+        title: Automatic pull request
+
+    - name: Create Pull Request (fix)
+      if: startsWith(github.ref, 'refs/heads/fix')
+      uses: devops-infra/action-pull-request@v0.5.5
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        label: automatic,fix
+        title: Automatic pull request
