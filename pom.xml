@@ -46,29 +46,6 @@
 		<maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
 		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
 		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
-
-		<!-- Sonar -->
-		<sonar.organization>mvallim</sonar.organization>
-		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
-		<sonar.token>${env.SONAR_TOKEN}</sonar.token>
-		<sonar.projectKey>${project.artifactId}</sonar.projectKey>
-		<sonar.projectName>${project.artifactId}</sonar.projectName>
-		<sonar.projectVersion>${project.version}</sonar.projectVersion>
-		<sonar.projectBaseDir>.</sonar.projectBaseDir>
-		<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-		<sonar.sources>src/main/java</sonar.sources>
-		<sonar.tests>src/test/java</sonar.tests>
-		<sonar.inclusions>**/main/**</sonar.inclusions>
-		<sonar.exclusions>**/test/**</sonar.exclusions>
-		<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
-		<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
-		<sonar.coverage.exclusions>
-			**/model/**,
-			**/package-info.**,
-			**/generated-sources/**,
-			**/generated-test-sources/**,
-			**/test/**
-		</sonar.coverage.exclusions>
 	</properties>
 
 	<modules>
@@ -383,32 +360,22 @@
 						<configuration>
 							<append>true</append>
 							<propertyName>jacoco.argLine</propertyName>
-							<destFile>../target/jacoco.exe</destFile>
+							<destFile>../target/site/${project.artifactId}/jacoco.exe</destFile>
 						</configuration>
 					</execution>
 					<execution>
 						<id>report</id>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>post-unit-test</id>
 						<phase>test</phase>
 						<goals>
 							<goal>report</goal>
 						</goals>
 						<configuration>
-							<dataFile>../target/jacoco.exe</dataFile>
+							<append>true</append>
+							<dataFile>../target/site/${project.artifactId}/jacoco.exe</dataFile>
 							<outputDirectory>../target/site/${project.artifactId}</outputDirectory>
 						</configuration>
 					</execution>
 				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.sonarsource.scanner.maven</groupId>
-				<artifactId>sonar-maven-plugin</artifactId>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -448,6 +415,7 @@
 				<java.version>8</java.version>
 			</properties>
 		</profile>
+		
 		<profile>
 			<id>11</id>
 			<activation>
@@ -457,6 +425,7 @@
 				<java.version>11</java.version>
 			</properties>
 		</profile>
+		
 		<profile>
 			<id>17</id>
 			<activation>
@@ -466,6 +435,7 @@
 				<java.version>17</java.version>
 			</properties>
 		</profile>
+		
 		<profile>
 			<id>21</id>
 			<activation>
@@ -475,27 +445,54 @@
 				<java.version>21</java.version>
 			</properties>
 		</profile>
+		
 		<profile>
-			<id>code-ql</id>
-			<build>
+			<id>sonar</id>
+			<properties>
+				<sonar.organization>mvallim</sonar.organization>
+				<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+				<sonar.token>${env.SONAR_TOKEN}</sonar.token>
+				<sonar.projectKey>${project.artifactId}</sonar.projectKey>
+				<sonar.projectName>${project.artifactId}</sonar.projectName>
+				<sonar.projectVersion>${project.version}</sonar.projectVersion>
+				<sonar.projectBaseDir>.</sonar.projectBaseDir>
+				<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+				<sonar.sources>src/main/java</sonar.sources>
+				<sonar.tests>src/test/java</sonar.tests>
+				<sonar.inclusions>**/main/**</sonar.inclusions>
+				<sonar.exclusions>**/test/**</sonar.exclusions>
+				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
+				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
+				<sonar.coverage.exclusions>
+					**/amazon-sqs-java-messaging-lib-template/**,
+					**/model/**,
+					**/package-info.**,
+					**/generated-sources/**,
+					**/generated-test-sources/**,
+					**/test/**
+				</sonar.coverage.exclusions>
+			</properties>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
 				<plugins>
 					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-compiler-plugin</artifactId>
-						<configuration>
-							<source>${java.version}</source>
-							<target>${java.version}</target>
-							<encoding>${project.build.sourceEncoding}</encoding>
-							<debug>true</debug>
-							<optimize>true</optimize>
-							<showDeprecation>true</showDeprecation>
-							<showWarnings>true</showWarnings>
-							<useIncrementalCompilation>true</useIncrementalCompilation>
-						</configuration>
+						<groupId>org.sonarsource.scanner.maven</groupId>
+						<artifactId>sonar-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sonar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
+		
 		<profile>
 			<id>release-sign-artifacts</id>
 			<activation>
@@ -522,6 +519,7 @@
 				</plugins>
 			</build>
 		</profile>
+
 		<profile>
 			<id>nexus-release</id>
 			<properties>
