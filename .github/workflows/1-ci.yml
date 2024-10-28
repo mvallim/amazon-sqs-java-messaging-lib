@@ -19,17 +19,17 @@ permissions:
 
 jobs:
   ci:
-    uses: ./.github/workflows/maven-ci.yml
+    uses: ./.github/workflows/1.1-maven.yml
     secrets: inherit
 
   gates:
-    uses: ./.github/workflows/gates.yml
+    uses: ./.github/workflows/1.2-gates.yml
     if: success()
     needs: ci
     secrets: inherit
   
   pull-request:
-    uses: ./.github/workflows/pull-request.yml
+    uses: ./.github/workflows/1.3-pull-request.yml
     if: success()
     needs: gates
     secrets: inherit
