@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  analyze:
+  codeql:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -31,6 +31,8 @@ jobs:
 
   sonarcloud:
     environment: sonarcloud
+    needs: codeql
+    if: success()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
