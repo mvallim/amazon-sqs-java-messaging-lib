@@ -3,6 +3,10 @@ name: SonarCloud and CodeQL Analysis
 on:
   workflow_call:
 
+permissions:
+  actions: read
+  security-events: write
+
 jobs:
   analyze:
     runs-on: ubuntu-latest
