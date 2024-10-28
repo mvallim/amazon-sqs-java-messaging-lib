@@ -1,6 +1,6 @@
 # Amazon SQS Java Messaging Lib
 
-[![Java CI with Maven](https://github.com/mvallim/amazon-sqs-java-messaging-lib/actions/workflows/branch.yml/badge.svg)](https://github.com/mvallim/amazon-sqs-java-messaging-lib/actions/workflows/branch.yml)
+[![Java CI with Maven](https://github.com/mvallim/amazon-sqs-java-messaging-lib/actions/workflows/ci.yml/badge.svg)](https://github.com/mvallim/amazon-sqs-java-messaging-lib/actions/workflows/ci.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=amazon-sqs-java-messaging-lib&metric=alert_status)](https://sonarcloud.io/dashboard?id=amazon-sqs-java-messaging-lib)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=amazon-sqs-java-messaging-lib&metric=coverage)](https://sonarcloud.io/dashboard?id=amazon-sqs-java-messaging-lib)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sqs-java-messaging-lib/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mvallim/amazon-sqs-java-messaging-lib)

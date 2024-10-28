@@ -11,6 +11,6 @@ permissions:
 
 jobs:
   snapshot:
-    uses: ./.github/workflows/2.1-snapshot.yml
+    uses: ./.github/workflows/cd-snapshot.yml
     secrets: inherit
 
