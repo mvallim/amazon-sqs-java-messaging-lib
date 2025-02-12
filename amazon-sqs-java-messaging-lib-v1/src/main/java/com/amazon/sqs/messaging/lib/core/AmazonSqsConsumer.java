@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazon.sqs.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sqs.messaging.lib.model.QueueProperty;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
@@ -64,7 +65,7 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<AmazonSQS, SendMess
   }
 
   @Override
-  protected BiFunction<String, List<RequestEntry<E>>, SendMessageBatchRequest> supplierPublishRequest() {
+  protected BiFunction<String, List<RequestEntryInternal>, SendMessageBatchRequest> supplierPublishRequest() {
     return (queueUrl, requestEntries) -> {
       final List<SendMessageBatchRequestEntry> entries = requestEntries.stream()
         .map(entry -> new SendMessageBatchRequestEntry()
@@ -72,7 +73,7 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<AmazonSQS, SendMess
           .withMessageGroupId(StringUtils.isNotBlank(entry.getGroupId()) ? entry.getGroupId() : null)
           .withMessageDeduplicationId(StringUtils.isNotBlank(entry.getDeduplicationId()) ? entry.getDeduplicationId() : null)
           .withMessageAttributes(messageAttributes.messageAttributes(entry.getMessageHeaders()))
-          .withMessageBody(convertPayload(entry.getValue())))
+          .withMessageBody(entry.getMessage()))
         .collect(Collectors.toList());
       return new SendMessageBatchRequest().withEntries(entries).withQueueUrl(queueUrl);
     };
