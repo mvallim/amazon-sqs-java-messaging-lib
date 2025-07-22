@@ -13,4 +13,6 @@
 
 	<artifactId>amazon-sqs-java-messaging-lib-template</artifactId>
 
+	<name>${project.artifactId}</name>
+
 </project>
