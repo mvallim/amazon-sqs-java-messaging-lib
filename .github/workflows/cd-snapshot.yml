@@ -1,34 +1,35 @@
-name: Publish package to the Maven Central Repository
+name: Build, Publish Snapshot and Pull Request
 
 on:
-  workflow_call:
+  pull_request_target:
+    branches: 
+      - release/**
+    types:
+      - closed
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  publish:
-    environment: snapshot
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  ci:
+    if: ${{ github.event.pull_request.merged == true }}
+    uses: ./.github/workflows/ci-maven.yml
+    secrets: inherit
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: 8
-          distribution: 'corretto'
-          server-id: nexus-release
-          server-username: OSSRH_USERNAME
-          server-password: OSSRH_TOKEN
-          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+  snapshot:
+    needs: ci
+    uses: ./.github/workflows/cd-deploy.yml
+    secrets: inherit
+    with:
+      environment: snapshot
 
-      - name: Configure Git user
-        run: |
-          git config user.email "actions@github.com"
-          git config user.name "GitHub Actions"
-
-      - name: Publish Snapshot to the Maven Central Repository
-        run: mvn clean deploy -P nexus-release
-        env:
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+  pull-request:
+    needs: snapshot
+    uses: ./.github/workflows/ci-pull-request.yml
+    secrets: inherit
+    with:
+      type: Release
+      labels: automatic,release
+      source-branch: master
+      target-branch: master
