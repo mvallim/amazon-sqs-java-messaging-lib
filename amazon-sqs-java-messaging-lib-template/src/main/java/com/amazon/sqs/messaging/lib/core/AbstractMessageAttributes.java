@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+// @formatter:off
 @SuppressWarnings("java:S6204")
 abstract class AbstractMessageAttributes<V> {
 
@@ -77,3 +78,4 @@ abstract class AbstractMessageAttributes<V> {
   protected abstract V getStringArrayMessageAttribute(final List<?> value);
 
 }
+// @formatter:on
