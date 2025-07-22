@@ -46,7 +46,7 @@ public final class PublishRequestBuilder {
       return this;
     }
 
-    public Builder<R, E> topicArn(final String queueUrl) {
+    public Builder<R, E> queueUrl(final String queueUrl) {
       this.queueUrl = queueUrl;
       return this;
     }

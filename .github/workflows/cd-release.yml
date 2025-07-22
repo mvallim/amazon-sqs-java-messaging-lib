@@ -1,9 +1,9 @@
-name: Build, Publish Snapshot and Pull Request
+name: Build and Publish Release
 
 on:
   pull_request_target:
     branches: 
-      - release/**
+      - master
     types:
       - closed
 
@@ -17,19 +17,9 @@ jobs:
     uses: ./.github/workflows/ci-maven.yml
     secrets: inherit
 
-  snapshot:
+  release:
     needs: ci
     uses: ./.github/workflows/cd-deploy.yml
     secrets: inherit
     with:
-      environment: snapshot
-
-  pull-request:
-    needs: snapshot
-    uses: ./.github/workflows/ci-pull-request.yml
-    secrets: inherit
-    with:
-      type: Release
-      labels: automatic,release
-      source-branch: master
-      target-branch: master
+      environment: release
