@@ -30,95 +30,69 @@ class AmazonSqsThreadPoolExecutorTest {
 
   @Test
   void testSuccessCounters() {
-    try (final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(10)) {
-      assertThat(amazonSqsThreadPoolExecutor.getActiveTaskCount(), is(0));
-      assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-      assertThat(amazonSqsThreadPoolExecutor.getFailedTaskCount(), is(0));
-      assertThat(amazonSqsThreadPoolExecutor.getCorePoolSize(), is(0));
-    }
+    final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(10);
+
+    assertThat(amazonSqsThreadPoolExecutor.getActiveTaskCount(), is(0));
+    assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+    assertThat(amazonSqsThreadPoolExecutor.getFailedTaskCount(), is(0));
+    assertThat(amazonSqsThreadPoolExecutor.getCorePoolSize(), is(0));
   }
 
   @Test
   void testSuccessSucceededTaskCount() throws InterruptedException {
-    try (final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(10)) {
-      assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-  
-      for(int i = 0; i < 300; i++) {
-        amazonSqsThreadPoolExecutor.execute(() -> {
-          try {
-            Thread.sleep(1);
-          } catch (final InterruptedException e) {
-            e.printStackTrace();
-          }
-        });
-      }
-  
-      amazonSqsThreadPoolExecutor.shutdown();
-  
-      if (!amazonSqsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-        amazonSqsThreadPoolExecutor.shutdownNow();
-      }
-  
-      assertThat(amazonSqsThreadPoolExecutor.getActiveTaskCount(), is(0));
-      assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(300));
-      assertThat(amazonSqsThreadPoolExecutor.getFailedTaskCount(), is(0));
+    final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(10);
+
+    assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+
+    for(int i = 0; i < 300; i++) {
+      amazonSqsThreadPoolExecutor.execute(() -> {
+        try {
+          Thread.sleep(1);
+        } catch (final InterruptedException e) {
+          e.printStackTrace();
+        }
+      });
     }
+
+    amazonSqsThreadPoolExecutor.shutdown();
+
+    if (!amazonSqsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+      amazonSqsThreadPoolExecutor.shutdownNow();
+    }
+
+    assertThat(amazonSqsThreadPoolExecutor.getActiveTaskCount(), is(0));
+    assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(300));
+    assertThat(amazonSqsThreadPoolExecutor.getFailedTaskCount(), is(0));
   }
 
   @Test
   void testSuccessFailedTaskCount() throws InterruptedException {
-    try (final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(10)) {
-      assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-  
-      for(int i = 0; i < 300; i++) {
-        amazonSqsThreadPoolExecutor.execute(() -> { throw new RuntimeException(); });
-      }
-  
-      amazonSqsThreadPoolExecutor.shutdown();
-  
-      if (!amazonSqsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-        amazonSqsThreadPoolExecutor.shutdownNow();
-      }
-  
-      assertThat(amazonSqsThreadPoolExecutor.getActiveTaskCount(), is(0));
-      assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-      assertThat(amazonSqsThreadPoolExecutor.getFailedTaskCount(), is(300));
+    final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(10);
+
+    assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+
+    for(int i = 0; i < 300; i++) {
+      amazonSqsThreadPoolExecutor.execute(() -> { throw new RuntimeException(); });
     }
+
+    amazonSqsThreadPoolExecutor.shutdown();
+
+    if (!amazonSqsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+      amazonSqsThreadPoolExecutor.shutdownNow();
+    }
+
+    assertThat(amazonSqsThreadPoolExecutor.getActiveTaskCount(), is(0));
+    assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+    assertThat(amazonSqsThreadPoolExecutor.getFailedTaskCount(), is(300));
   }
 
   @Test
   void testSuccessActiveTaskCount() throws InterruptedException {
-    try (final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(10)) {     
-      assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-  
-      for(int i = 0; i < 10; i++) {
-        amazonSqsThreadPoolExecutor.execute(() -> {
-          while(true) {
-            try {
-              Thread.sleep(1);
-            } catch (final InterruptedException e) {
-              e.printStackTrace();
-            }
-          }
-        });
-      }
-  
-      amazonSqsThreadPoolExecutor.shutdown();
-  
-      if (!amazonSqsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-        amazonSqsThreadPoolExecutor.shutdownNow();
-      }
-  
-      assertThat(amazonSqsThreadPoolExecutor.getActiveTaskCount(), is(10));
-      assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
-      assertThat(amazonSqsThreadPoolExecutor.getFailedTaskCount(), is(0));
-    }
+    final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(10);
 
-  }
+    assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
 
-  @Test
-  void testSuccessBlockingSubmissionPolicy() throws InterruptedException {
-    try (final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(1)) {
+    for(int i = 0; i < 10; i++) {
       amazonSqsThreadPoolExecutor.execute(() -> {
         while(true) {
           try {
@@ -128,10 +102,34 @@ class AmazonSqsThreadPoolExecutorTest {
           }
         }
       });
-  
-      catchThrowableOfType(() -> amazonSqsThreadPoolExecutor.execute(() -> { }), RejectedExecutionException.class);
     }
 
+    amazonSqsThreadPoolExecutor.shutdown();
+
+    if (!amazonSqsThreadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+      amazonSqsThreadPoolExecutor.shutdownNow();
+    }
+
+    assertThat(amazonSqsThreadPoolExecutor.getActiveTaskCount(), is(10));
+    assertThat(amazonSqsThreadPoolExecutor.getSucceededTaskCount(), is(0));
+    assertThat(amazonSqsThreadPoolExecutor.getFailedTaskCount(), is(0));
+  }
+
+  @Test
+  void testSuccessBlockingSubmissionPolicy() throws InterruptedException {
+    final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(1);
+
+    amazonSqsThreadPoolExecutor.execute(() -> {
+      while(true) {
+        try {
+          Thread.sleep(1);
+        } catch (final InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    });
+
+    catchThrowableOfType(() -> amazonSqsThreadPoolExecutor.execute(() -> { }), RejectedExecutionException.class);
   }
 
 }
