@@ -473,6 +473,7 @@
 				<sonar.tests>src/test/java</sonar.tests>
 				<sonar.inclusions>**/main/**</sonar.inclusions>
 				<sonar.exclusions>**/test/**</sonar.exclusions>
+				<sonar.modules>amazon-sqs-java-messaging-lib-template,amazon-sqs-java-messaging-lib-v1,amazon-sqs-java-messaging-lib-v2</sonar.modules>
 				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 				<sonar.coverage.exclusions>
