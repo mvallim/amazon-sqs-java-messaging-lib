@@ -18,6 +18,7 @@ package com.amazon.sqs.messaging.lib.core;
 
 import java.util.concurrent.CompletableFuture;
 
+import com.amazon.sqs.messaging.lib.concurrent.AmazonSqsThreadPoolExecutor;
 import com.amazon.sqs.messaging.lib.model.QueueProperty;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
