@@ -17,6 +17,7 @@
 package com.amazon.sqs.messaging.lib.core;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -84,38 +85,41 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<AmazonSQS, SendMess
     final String code = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorCode() : "000";
     final String message = throwable instanceof AmazonServiceException ? AmazonServiceException.class.cast(throwable).getErrorMessage() : throwable.getMessage();
 
-    LOGGER.error(throwable.getMessage(), throwable);
+    LOGGER.error("Error processing batch request: {}", message, throwable);
 
     publishBatchRequest.getEntries().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());
-      listenableFuture.fail(ResponseFailEntry.builder()
-        .withId(entry.getId())
-        .withCode(code)
-        .withMessage(message)
-        .withSenderFault(true)
-        .build());
+      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture -> {
+        listenableFuture.fail(ResponseFailEntry.builder()
+          .withId(entry.getId())
+          .withCode(code)
+          .withMessage(message)
+          .withSenderFault(true)
+          .build());
+      });
     });
   }
 
   @Override
   protected void handleResponse(final SendMessageBatchResult publishBatchResult) {
     publishBatchResult.getSuccessful().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());
-      listenableFuture.success(ResponseSuccessEntry.builder()
-        .withId(entry.getId())
-        .withMessageId(entry.getMessageId())
-        .withSequenceNumber(entry.getSequenceNumber())
-        .build());
+      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture -> {
+        listenableFuture.success(ResponseSuccessEntry.builder()
+          .withId(entry.getId())
+          .withMessageId(entry.getMessageId())
+          .withSequenceNumber(entry.getSequenceNumber())
+          .build());
+      });
     });
 
     publishBatchResult.getFailed().forEach(entry -> {
-      final ListenableFutureRegistry listenableFuture = pendingRequests.remove(entry.getId());
-      listenableFuture.fail(ResponseFailEntry.builder()
-        .withId(entry.getId())
-        .withCode(entry.getCode())
-        .withMessage(entry.getMessage())
-        .withSenderFault(entry.getSenderFault())
-        .build());
+      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture -> {
+        listenableFuture.fail(ResponseFailEntry.builder()
+          .withId(entry.getId())
+          .withCode(entry.getCode())
+          .withMessage(entry.getMessage())
+          .withSenderFault(entry.getSenderFault())
+          .build());
+      });
     });
   }
 

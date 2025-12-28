@@ -17,6 +17,8 @@
 package com.amazon.sqs.messaging.lib.core;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -29,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
@@ -37,6 +40,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazon.sqs.messaging.lib.concurrent.ThreadFactoryProvider;
 import com.amazon.sqs.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sqs.messaging.lib.model.PublishRequestBuilder;
 import com.amazon.sqs.messaging.lib.model.QueueProperty;
@@ -50,11 +54,11 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
 
   private static final Integer KB = 1024;
 
-  private static final Integer BATCH_SIZE_BYTES_THRESHOLD = 256 * KB;
+  private static final Integer BATCH_SIZE_BYTES_THRESHOLD = 1024 * KB;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSqsConsumer.class);
 
-  private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(ThreadFactoryProvider.getThreadFactory());
 
   protected final C amazonSqsClient;
 
@@ -81,7 +85,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
 
     this.amazonSqsClient = amazonSqsClient;
     this.queueProperty = queueProperty;
-    this.requestEntryInternalFactory = new RequestEntryInternalFactory(objectMapper);
+    requestEntryInternalFactory = new RequestEntryInternalFactory(objectMapper);
     this.pendingRequests = pendingRequests;
     this.queueRequests = queueRequests;
     this.publishDecorator = publishDecorator;
@@ -107,14 +111,16 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
   }
 
   private void publishBatch(final R publishBatchRequest) {
-    if (queueProperty.isFifo()) {
-      doPublish(publishBatchRequest);
-    } else {
-      try {
-        CompletableFuture.runAsync(() -> doPublish(publishBatchRequest), executorService);
-      } catch (final Exception ex) {
-        handleError(publishBatchRequest, ex);
+    try {
+      final Runnable runnable = () -> doPublish(publishBatchRequest);
+
+      if (queueProperty.isFifo()) {
+        runnable.run();
+      } else {
+        CompletableFuture.runAsync(runnable, executorService);
       }
+    } catch (final Exception ex) {
+      handleError(publishBatchRequest, ex);
     }
   }
 
@@ -132,21 +138,28 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
 
   @SneakyThrows
   public void shutdown() {
-    LOGGER.warn("Shutdown consumer {}", getClass().getSimpleName());
+    await().thenAccept(result -> {
+      try {
+        LOGGER.warn("Shutdown consumer {}", getClass().getSimpleName());
 
-    scheduledExecutorService.shutdown();
-    if (!scheduledExecutorService.awaitTermination(60, TimeUnit.SECONDS)) {
-      LOGGER.warn("Scheduled executor service did not terminate in the specified time.");
-      final List<Runnable> droppedTasks = scheduledExecutorService.shutdownNow();
-      LOGGER.warn("Scheduled executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
-    }
+        scheduledExecutorService.shutdown();
+        if (!scheduledExecutorService.awaitTermination(60, TimeUnit.SECONDS)) {
+          LOGGER.warn("Scheduled executor service did not terminate in the specified time.");
+          final List<Runnable> droppedTasks = scheduledExecutorService.shutdownNow();
+          LOGGER.warn("Scheduled executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
+        }
 
-    executorService.shutdown();
-    if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-      LOGGER.warn("Executor service did not terminate in the specified time.");
-      final List<Runnable> droppedTasks = executorService.shutdownNow();
-      LOGGER.warn("Executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
-    }
+        executorService.shutdown();
+        if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+          LOGGER.warn("Executor service did not terminate in the specified time.");
+          final List<Runnable> droppedTasks = executorService.shutdownNow();
+          LOGGER.warn("Executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
+        }
+      } catch (final InterruptedException ex) {
+        LOGGER.error(ex.getMessage(), ex);
+        Thread.currentThread().interrupt();
+      }
+    }).join();
   }
 
   private boolean requestsWaitedFor(final BlockingQueue<RequestEntry<E>> requests, final long batchingWindowInMs) {
@@ -160,11 +173,8 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
     return requests.size() > queueProperty.getMaxBatchSize();
   }
 
-  @SneakyThrows
-  private void validateMessageSize(final Integer messageSize) {
-    if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
-      throw new IOException("The maximum allowed message size exceeding 256KB (262,144 bytes).");
-    }
+  private boolean invalidMessageSize(final Integer messageSize) {
+    return messageSize > BATCH_SIZE_BYTES_THRESHOLD;
   }
 
   private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
@@ -192,7 +202,10 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
 
       final Integer messageSize = messageBodySize + messageAttributesSize;
 
-      validateMessageSize(messageSize);
+      if (invalidMessageSize(messageSize)) {
+        final String message = new String(payload, StandardCharsets.UTF_8);
+        throw new IOException(String.format("The maximum allowed message size exceeding 1024KB (1,048,576 bytes). Payload: %s, Headers: %s", message, request.getMessageHeaders()));
+      }
 
       if (canAddPayload(batchSizeBytes.addAndGet(messageSize))) {
         requestEntries.add(requestEntryInternalFactory.create(requests.take(), payload));
@@ -215,16 +228,10 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
   @SneakyThrows
   public CompletableFuture<Void> await() {
     return CompletableFuture.runAsync(() -> {
-      while (MapUtils.isNotEmpty(this.pendingRequests) ||
-        CollectionUtils.isNotEmpty(this.queueRequests)) {
-        sleep(queueProperty.getLinger());
+      while (MapUtils.isNotEmpty(this.pendingRequests) || CollectionUtils.isNotEmpty(this.queueRequests)) {
+        LockSupport.parkNanos(Duration.ofMillis(queueProperty.getLinger()).toNanos());
       }
     });
-  }
-
-  @SneakyThrows
-  private static void sleep(final long millis) {
-    Thread.sleep(millis);
   }
 
 }

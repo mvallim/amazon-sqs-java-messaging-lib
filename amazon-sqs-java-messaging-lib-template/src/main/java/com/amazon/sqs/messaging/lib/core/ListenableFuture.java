@@ -18,6 +18,9 @@ package com.amazon.sqs.messaging.lib.core;
 
 import java.util.function.Consumer;
 
+import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
+
 public interface ListenableFuture<S, F> {
 
   void addCallback(final Consumer<? super S> successCallback, final Consumer<? super F> failureCallback);
@@ -25,5 +28,9 @@ public interface ListenableFuture<S, F> {
   default void addCallback(final Consumer<? super S> successCallback) {
     addCallback(successCallback, result -> { });
   }
+
+  void success(final ResponseSuccessEntry entry);
+
+  void fail(final ResponseFailEntry entry);
 
 }

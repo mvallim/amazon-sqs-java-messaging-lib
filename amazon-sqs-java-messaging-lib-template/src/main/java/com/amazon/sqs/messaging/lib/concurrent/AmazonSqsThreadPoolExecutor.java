@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sqs.messaging.lib.core;
+package com.amazon.sqs.messaging.lib.concurrent;
 
 import java.util.Objects;
 import java.util.concurrent.SynchronousQueue;
@@ -31,7 +31,7 @@ public class AmazonSqsThreadPoolExecutor extends ThreadPoolExecutor {
   private final AtomicInteger succeededTaskCount = new AtomicInteger();
 
   public AmazonSqsThreadPoolExecutor(final int maximumPoolSize) {
-    super(0, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), new BlockingSubmissionPolicy(30000));
+    super(0, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), ThreadFactoryProvider.getThreadFactory(), new BlockingSubmissionPolicy(30000));
   }
 
   public int getActiveTaskCount() {

@@ -16,36 +16,91 @@
 
 package com.amazon.sqs.messaging.lib.core;
 
+import java.util.LinkedList;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
+import java.util.Queue;
 import java.util.function.Consumer;
+
+import org.apache.commons.collections4.CollectionUtils;
 
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+
 class ListenableFutureRegistry implements ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> {
 
-  private final CompletableFuture<ResponseSuccessEntry> completableFutureSuccess = new CompletableFuture<>();
-  private final CompletableFuture<ResponseFailEntry> completableFutureFailure = new CompletableFuture<>();
+  private final Object mutex = new Object();
+
+  @Getter(value = AccessLevel.PACKAGE)
+  private State state = State.NEW;
+
+  @Getter(value = AccessLevel.PACKAGE)
+  private ResponseSuccessEntry successResult;
+
+  @Getter(value = AccessLevel.PACKAGE)
+  private ResponseFailEntry failureResult;
+
+  private final Queue<Consumer<? super ResponseSuccessEntry>> successCallback = new LinkedList<>();
+
+  private final Queue<Consumer<? super ResponseFailEntry>> failureCallback = new LinkedList<>();
 
   @Override
   public void addCallback(final Consumer<? super ResponseSuccessEntry> successCallback, final Consumer<? super ResponseFailEntry> failureCallback) {
-    final Consumer<? super ResponseSuccessEntry> internalSuccessCallback = Objects.nonNull(successCallback) ? successCallback : result -> { };
-    final Consumer<? super ResponseFailEntry> internalFailureCallback = Objects.nonNull(failureCallback) ? failureCallback : result -> { };
-    completableFutureSuccess.whenComplete((result, throwable) -> internalSuccessCallback.accept(result));
-    completableFutureFailure.whenComplete((result, throwable) -> internalFailureCallback.accept(result));
+    synchronized (mutex) {
+      final Consumer<? super ResponseSuccessEntry> success = Objects.nonNull(successCallback) ? successCallback : result -> { };
+      final Consumer<? super ResponseFailEntry> failure = Objects.nonNull(failureCallback) ? failureCallback : result -> { };
+
+      switch (state) {
+        case NEW:
+          this.successCallback.add(success);
+          this.failureCallback.add(failure);
+          break;
+        case SUCCESS:
+          notifySuccess(success);
+          break;
+        case FAILURE:
+          notifyFailure(failure);
+          break;
+      }
+    }
   }
 
+  @Override
   public void success(final ResponseSuccessEntry entry) {
-    completableFutureSuccess.complete(entry);
+    synchronized (mutex) {
+      state = State.SUCCESS;
+      successResult = entry;
+
+      while (CollectionUtils.isNotEmpty(successCallback)) {
+        notifySuccess(successCallback.poll());
+      }
+    }
   }
 
+  @Override
   public void fail(final ResponseFailEntry entry) {
-    completableFutureFailure.complete(entry);
+    synchronized (mutex) {
+      state = State.FAILURE;
+      failureResult = entry;
+
+      while (CollectionUtils.isNotEmpty(failureCallback)) {
+        notifyFailure(failureCallback.poll());
+      }
+    }
   }
 
-  public CompletableFuture<Object> completable() {
-    return CompletableFuture.anyOf(completableFutureSuccess, completableFutureFailure);
+  private void notifySuccess(final Consumer<? super ResponseSuccessEntry> callback) {
+    callback.accept(successResult);
+  }
+
+  private void notifyFailure(final Consumer<? super ResponseFailEntry> callback) {
+    callback.accept(failureResult);
+  }
+
+  enum State {
+    NEW, SUCCESS, FAILURE
   }
 
 }
