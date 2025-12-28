@@ -471,16 +471,11 @@
 				<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 				<sonar.sources>src/main/java</sonar.sources>
 				<sonar.tests>src/test/java</sonar.tests>
-				<sonar.exclusions>src/test/java/**</sonar.exclusions>
+				<sonar.inclusions>**/main/**</sonar.inclusions>
+				<sonar.exclusions>**/test/**</sonar.exclusions>
+				<sonar.modules>amazon-sqs-java-messaging-lib-template,amazon-sqs-java-messaging-lib-v1,amazon-sqs-java-messaging-lib-v2</sonar.modules>
 				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
-				<sonar.language>java</sonar.language>
-				<sonar.sourceEncoding>${project.reporting.sourceEncoding}</sonar.sourceEncoding>
-				<sonar.projectBaseDir>.</sonar.projectBaseDir>
-				<sonar.modules>
-					amazon-sqs-java-messaging-lib-v1,
-					amazon-sqs-java-messaging-lib-v2
-				</sonar.modules>
 				<sonar.coverage.exclusions>
 					**/amazon-sqs-java-messaging-lib-template/**,
 					**/model/**,
