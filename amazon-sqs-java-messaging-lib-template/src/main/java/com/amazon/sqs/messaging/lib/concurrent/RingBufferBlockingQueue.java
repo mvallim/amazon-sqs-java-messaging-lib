@@ -29,10 +29,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
 
 import lombok.Getter;
+import lombok.Locked;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
-@SuppressWarnings({ "java:S2274" })
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
 
   private static final int DEFAULT_CAPACITY = 2048;
@@ -63,7 +63,7 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   public RingBufferBlockingQueue() {
-    this(DEFAULT_CAPACITY);
+    this(RingBufferBlockingQueue.DEFAULT_CAPACITY);
   }
 
   private long avoidSequenceOverflow(final long sequence) {
@@ -103,56 +103,46 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
 
   @Override
   @SneakyThrows
+  @Locked("reentrantLock")
   public void put(final E element) {
-    try {
-      reentrantLock.lock();
-
-      while (isFull()) {
-        waitingProducer.await();
-      }
-
-      final long prevWriteSeq = writeSequence.get();
-      final long nextWriteSeq = avoidSequenceOverflow(prevWriteSeq) + 1;
-
-      buffer.get(wrap(nextWriteSeq)).setValue(element);
-
-      writeSequence.compareAndSet(prevWriteSeq, nextWriteSeq);
-
-      size.incrementAndGet();
-
-      waitingConsumer.signal();
-    } finally {
-      reentrantLock.unlock();
+    while (isFull()) {
+      waitingProducer.await();
     }
+
+    final long prevWriteSeq = writeSequence.get();
+    final long nextWriteSeq = avoidSequenceOverflow(prevWriteSeq) + 1;
+
+    buffer.get(wrap(nextWriteSeq)).setValue(element);
+
+    writeSequence.compareAndSet(prevWriteSeq, nextWriteSeq);
+
+    size.incrementAndGet();
+
+    waitingConsumer.signal();
   }
 
   @Override
   @SneakyThrows
+  @Locked("reentrantLock")
   public E take() {
-    try {
-      reentrantLock.lock();
-
-      while (isEmpty()) {
-        waitingConsumer.await();
-      }
-
-      final long prevReadSeq = readSequence.get();
-      final long nextReadSeq = avoidSequenceOverflow(prevReadSeq) + 1;
-
-      final E nextValue = buffer.get(wrap(prevReadSeq)).getValue();
-
-      buffer.get(wrap(prevReadSeq)).setValue(null);
-
-      readSequence.compareAndSet(prevReadSeq, nextReadSeq);
-
-      size.decrementAndGet();
-
-      waitingProducer.signal();
-
-      return nextValue;
-    } finally {
-      reentrantLock.unlock();
+    while (isEmpty()) {
+      waitingConsumer.await();
     }
+
+    final long prevReadSeq = readSequence.get();
+    final long nextReadSeq = avoidSequenceOverflow(prevReadSeq) + 1;
+
+    final E nextValue = buffer.get(wrap(prevReadSeq)).getValue();
+
+    buffer.get(wrap(prevReadSeq)).setValue(null);
+
+    readSequence.compareAndSet(prevReadSeq, nextReadSeq);
+
+    size.decrementAndGet();
+
+    waitingProducer.signal();
+
+    return nextValue;
   }
 
   @Override

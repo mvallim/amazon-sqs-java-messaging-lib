@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sqs.messaging.lib.core;
+package com.amazon.sqs.messaging.lib.concurrent;
 
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,6 +24,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
+
+import com.amazon.sqs.messaging.lib.concurrent.AmazonSqsThreadPoolExecutor;
 
 // @formatter:off
 class AmazonSqsThreadPoolExecutorTest {
