@@ -41,17 +41,13 @@ final class RequestEntryInternalFactory {
 
   public RequestEntryInternal create(final RequestEntry<?> requestEntry, final byte[] bytes) {
     return RequestEntryInternal.builder()
-        .withCreateTime(requestEntry.getCreateTime())
-        .withDeduplicationId(requestEntry.getDeduplicationId())
-        .withGroupId(requestEntry.getGroupId())
-        .withId(requestEntry.getId())
-        .withMessageHeaders(requestEntry.getMessageHeaders())
-        .withValue(ByteBuffer.wrap(bytes))
-        .build();
-  }
-
-  public RequestEntryInternal create(final RequestEntry<?> requestEntry) {
-    return create(requestEntry, convertPayload(requestEntry));
+      .withCreateTime(requestEntry.getCreateTime())
+      .withDeduplicationId(requestEntry.getDeduplicationId())
+      .withGroupId(requestEntry.getGroupId())
+      .withId(requestEntry.getId())
+      .withMessageHeaders(requestEntry.getMessageHeaders())
+      .withValue(ByteBuffer.wrap(bytes))
+      .build();
   }
 
   @SneakyThrows

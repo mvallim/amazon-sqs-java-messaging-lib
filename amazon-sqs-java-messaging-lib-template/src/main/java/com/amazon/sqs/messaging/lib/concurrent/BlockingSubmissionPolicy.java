@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.amazon.sqs.messaging.lib.core;
+package com.amazon.sqs.messaging.lib.concurrent;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
