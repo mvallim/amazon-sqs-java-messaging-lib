@@ -25,8 +25,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 
-import com.amazon.sqs.messaging.lib.concurrent.AmazonSqsThreadPoolExecutor;
-
 // @formatter:off
 class AmazonSqsThreadPoolExecutorTest {
 
