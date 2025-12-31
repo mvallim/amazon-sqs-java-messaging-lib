@@ -6,7 +6,7 @@
 
 	<groupId>com.github.mvallim</groupId>
 	<artifactId>amazon-sqs-java-messaging-lib</artifactId>
-	<version>1.0.2-SNAPSHOT</version>
+	<version>1.1.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>${project.artifactId}</name>
@@ -30,7 +30,7 @@
 		<jmh.version>1.37</jmh.version>
 		<awaitility.version>4.2.2</awaitility.version>
 		<assertj-core.version>3.24.2</assertj-core.version>
-		<commons-lang3.version>3.17.0</commons-lang3.version>
+		<commons-lang3.version>3.20.0</commons-lang3.version>
 		<commons-collections4.version>4.5.0</commons-collections4.version>
 		<slf4j-api.version>2.0.6</slf4j-api.version>
 		<hamcrest.version>3.0</hamcrest.version>
@@ -49,22 +49,6 @@
 		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
 		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
 		<central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
-
-		<sonar.coverage.exclusions>
-			**/AbstractAmazonSqsConsumer.**,
-			**/AbstractAmazonSqsProducer.**,
-			**/AbstractAmazonSqsTemplate.**,
-			**/AbstractMessageAttributes.**,
-			**/model/**,
-			**/package-info.**,
-			**/generated-sources/**,
-			**/generated-test-sources/**,
-			**/src/test/**
-		</sonar.coverage.exclusions>
-
-		<sonar.exclusions>
-			**/src/test/**
-		</sonar.exclusions>
 	</properties>
 
 	<modules>
@@ -471,13 +455,11 @@
 				<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 				<sonar.sources>src/main/java</sonar.sources>
 				<sonar.tests>src/test/java</sonar.tests>
-				<sonar.inclusions>**/main/**</sonar.inclusions>
-				<sonar.exclusions>**/test/**</sonar.exclusions>
-				<sonar.modules>amazon-sqs-java-messaging-lib-template,amazon-sqs-java-messaging-lib-v1,amazon-sqs-java-messaging-lib-v2</sonar.modules>
+				<sonar.inclusions>src/main/**</sonar.inclusions>
+				<sonar.exclusions>src/test/**</sonar.exclusions>
 				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
 				<sonar.coverage.exclusions>
-					**/amazon-sqs-java-messaging-lib-template/**,
 					**/model/**,
 					**/package-info.**,
 					**/generated-sources/**,
