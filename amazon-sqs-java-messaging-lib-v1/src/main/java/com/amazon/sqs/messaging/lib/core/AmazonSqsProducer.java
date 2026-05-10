@@ -21,15 +21,29 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
+import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 
 // @formatter:off
+/**
+ * Amazon SQS v1 producer implementation. Delegates to {@link AbstractAmazonSqsProducer}.
+ *
+ * @param <E> the request entry payload type
+ */
 class AmazonSqsProducer<E> extends AbstractAmazonSqsProducer<E> {
 
+  /**
+   * Constructs a v1 SQS producer.
+   *
+   * @param pendingRequests the map of pending requests
+   * @param queueRequests   the blocking queue of incoming requests
+   * @param executorService the executor service
+   */
   public AmazonSqsProducer(
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
-      final BlockingQueue<RequestEntry<E>> topicRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
+      final BlockingQueue<RequestEntry<E>> queueRequests,
       final ExecutorService executorService) {
-    super(pendingRequests, topicRequests, executorService);
+    super(pendingRequests, queueRequests, executorService);
   }
 
 }

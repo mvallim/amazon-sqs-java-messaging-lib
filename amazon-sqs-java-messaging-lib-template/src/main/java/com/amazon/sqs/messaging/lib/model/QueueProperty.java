@@ -20,6 +20,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+/**
+ * Configuration properties for an Amazon SQS queue.
+ */
 @Getter
 @Builder
 @ToString

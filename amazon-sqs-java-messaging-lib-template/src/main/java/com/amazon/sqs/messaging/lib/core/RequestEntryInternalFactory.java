@@ -34,11 +34,21 @@ import lombok.SneakyThrows;
 import lombok.ToString;
 
 // @formatter:off
+/**
+ * Factory for creating internal request entries and converting request payloads.
+ */
 @RequiredArgsConstructor
 final class RequestEntryInternalFactory {
 
   private final ObjectMapper objectMapper;
 
+  /**
+   * Creates an internal request entry from a request entry and its serialized payload.
+   *
+   * @param requestEntry the source request entry
+   * @param bytes        the serialized payload bytes
+   * @return a new internal request entry
+   */
   public RequestEntryInternal create(final RequestEntry<?> requestEntry, final byte[] bytes) {
     return RequestEntryInternal.builder()
       .withCreateTime(requestEntry.getCreateTime())
@@ -50,6 +60,13 @@ final class RequestEntryInternalFactory {
       .build();
   }
 
+  /**
+   * Converts a request entry's value to a byte array. Strings are converted using UTF-8,
+   * and other types are serialized using Jackson JSON.
+   *
+   * @param requestEntry the request entry
+   * @return the serialized payload bytes
+   */
   @SneakyThrows
   public byte[] convertPayload(final RequestEntry<?> requestEntry) {
     return requestEntry.getValue() instanceof String
@@ -57,6 +74,12 @@ final class RequestEntryInternalFactory {
       : objectMapper.writeValueAsBytes(requestEntry.getValue());
   }
 
+  /**
+   * Calculates the total size of message attributes for a request entry.
+   *
+   * @param requestEntry the request entry
+   * @return the combined size of attribute keys and values
+   */
   @SneakyThrows
   public Integer messageAttributesSize(final RequestEntry<?> requestEntry) {
     final Map<String, Integer> messageAttributes = MessageAttributesInternal.INSTANCE.messageAttributes(requestEntry.getMessageHeaders());
@@ -71,6 +94,9 @@ final class RequestEntryInternalFactory {
     return messageAttributesKeysSize + messageAttributesValuesSize;
   }
 
+  /**
+   * Internal representation of a request entry with a serialized binary payload.
+   */
   @Getter
   @ToString
   @RequiredArgsConstructor
@@ -92,16 +118,30 @@ final class RequestEntryInternalFactory {
 
     private final String deduplicationId;
 
+    /**
+     * Returns the size of the binary payload in bytes.
+     *
+     * @return the payload size in bytes
+     */
     public int size() {
       return value.capacity();
     }
 
+    /**
+     * Decodes the binary payload as a UTF-8 string.
+     *
+     * @return the decoded message string
+     */
     public String getMessage() {
       return StandardCharsets.UTF_8.decode(value).toString();
     }
 
   }
 
+  /**
+   * Internal implementation of {@link AbstractMessageAttributes} that calculates
+   * attribute size values for batching decisions.
+   */
   @SuppressWarnings("java:S6548")
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   static class MessageAttributesInternal extends AbstractMessageAttributes<Integer> {
