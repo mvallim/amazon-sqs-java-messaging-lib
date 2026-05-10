@@ -29,7 +29,7 @@ import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 import lombok.AccessLevel;
 import lombok.Getter;
 
-class ListenableFutureRegistry implements ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> {
+class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> {
 
   private final Object mutex = new Object();
 

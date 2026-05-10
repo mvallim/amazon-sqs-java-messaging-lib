@@ -16,9 +16,9 @@
 
 package com.amazon.sqs.messaging.lib.core;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -42,9 +42,12 @@ import org.slf4j.LoggerFactory;
 
 import com.amazon.sqs.messaging.lib.concurrent.ThreadFactoryProvider;
 import com.amazon.sqs.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
+import com.amazon.sqs.messaging.lib.exception.MaximumAllowedMessageException;
 import com.amazon.sqs.messaging.lib.model.PublishRequestBuilder;
 import com.amazon.sqs.messaging.lib.model.QueueProperty;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
+import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.SneakyThrows;
@@ -66,7 +69,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
 
   private final RequestEntryInternalFactory requestEntryInternalFactory;
 
-  protected final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests;
+  protected final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
   private final BlockingQueue<RequestEntry<E>> queueRequests;
 
@@ -78,7 +81,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
       final C amazonSqsClient,
       final QueueProperty queueProperty,
       final ObjectMapper objectMapper,
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
       final BlockingQueue<RequestEntry<E>> queueRequests,
       final ExecutorService executorService,
       final UnaryOperator<R> publishDecorator) {
@@ -173,10 +176,6 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
     return requests.size() > queueProperty.getMaxBatchSize();
   }
 
-  private boolean invalidMessageSize(final Integer messageSize) {
-    return messageSize > BATCH_SIZE_BYTES_THRESHOLD;
-  }
-
   private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
     return (batchSizeBytes < BATCH_SIZE_BYTES_THRESHOLD)
       && (requestEntriesSize < queueProperty.getMaxBatchSize())
@@ -202,9 +201,18 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
 
       final Integer messageSize = messageBodySize + messageAttributesSize;
 
-      if (invalidMessageSize(messageSize)) {
-        final String message = new String(payload, StandardCharsets.UTF_8);
-        throw new IOException(String.format("The maximum allowed message size exceeding 1024KB (1,048,576 bytes). Payload: %s, Headers: %s", message, request.getMessageHeaders()));
+      if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
+        final R publishBatchRequest = PublishRequestBuilder.<R, RequestEntryInternal>builder()
+          .supplier(supplierPublishRequest())
+          .entries(Collections.singletonList(requestEntryInternalFactory.create(request, payload)))
+          .queueUrl(queueProperty.getQueueUrl())
+          .build();
+
+        final String stringPayload = new String(payload, StandardCharsets.UTF_8);
+
+        final String message = String.format("The maximum allowed message size exceeding 1024KB (1,048,576 bytes). Payload: %s, Headers: %s", stringPayload, request.getMessageHeaders());
+
+        handleError(publishBatchRequest, new MaximumAllowedMessageException(message, requests.take()));
       }
 
       if (canAddPayload(batchSizeBytes.addAndGet(messageSize))) {

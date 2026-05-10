@@ -19,12 +19,14 @@ package com.amazon.sqs.messaging.lib.core;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
 import java.util.function.UnaryOperator;
 
+import com.amazon.sqs.messaging.lib.concurrent.ExecutorsProvider;
 import com.amazon.sqs.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sqs.messaging.lib.model.QueueProperty;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
+import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -37,13 +39,13 @@ public class AmazonSqsTemplate<E> extends AbstractAmazonSqsTemplate<SqsClient, S
   private AmazonSqsTemplate(
       final SqsClient amazonSqsClient,
       final QueueProperty queueProperty,
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
-      final BlockingQueue<RequestEntry<E>> topicRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
+      final BlockingQueue<RequestEntry<E>> queueRequests,
       final ObjectMapper objectMapper,
       final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
     super(
-      new AmazonSqsProducer<>(pendingRequests, topicRequests, Executors.newSingleThreadExecutor()),
-      new AmazonSqsConsumer<>(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, getAmazonSqsThreadPoolExecutor(queueProperty), publishDecorator)
+      new AmazonSqsProducer<>(pendingRequests, queueRequests, ExecutorsProvider.getExecutorService()),
+      new AmazonSqsConsumer<>(amazonSqsClient, queueProperty, objectMapper, pendingRequests, queueRequests, getAmazonSqsThreadPoolExecutor(queueProperty), publishDecorator)
     );
   }
 
@@ -55,12 +57,12 @@ public class AmazonSqsTemplate<E> extends AbstractAmazonSqsTemplate<SqsClient, S
     this(amazonSqsClient, queueProperty, new ObjectMapper(), publishDecorator);
   }
 
-  public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> topicRequests) {
-    this(amazonSqsClient, queueProperty, topicRequests, UnaryOperator.identity());
+  public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> queueRequests) {
+    this(amazonSqsClient, queueProperty, queueRequests, UnaryOperator.identity());
   }
 
-  public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
-    this(amazonSqsClient, queueProperty, topicRequests, new ObjectMapper(), publishDecorator);
+  public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> queueRequests, final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
+    this(amazonSqsClient, queueProperty, queueRequests, new ObjectMapper(), publishDecorator);
   }
 
   public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final ObjectMapper objectMapper) {
@@ -71,12 +73,12 @@ public class AmazonSqsTemplate<E> extends AbstractAmazonSqsTemplate<SqsClient, S
     this(amazonSqsClient, queueProperty, new RingBufferBlockingQueue<>(queueProperty.getMaximumPoolSize() * queueProperty.getMaxBatchSize()), objectMapper, publishDecorator);
   }
 
-  public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper) {
-    this(amazonSqsClient, queueProperty, topicRequests, objectMapper, UnaryOperator.identity());
+  public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> queueRequests, final ObjectMapper objectMapper) {
+    this(amazonSqsClient, queueProperty, queueRequests, objectMapper, UnaryOperator.identity());
   }
 
-  public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> topicRequests, final ObjectMapper objectMapper, final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
-    this(amazonSqsClient, queueProperty, new ConcurrentHashMap<>(), topicRequests, objectMapper, publishDecorator);
+  public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> queueRequests, final ObjectMapper objectMapper, final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
+    this(amazonSqsClient, queueProperty, new ConcurrentHashMap<>(), queueRequests, objectMapper, publishDecorator);
   }
 
 }

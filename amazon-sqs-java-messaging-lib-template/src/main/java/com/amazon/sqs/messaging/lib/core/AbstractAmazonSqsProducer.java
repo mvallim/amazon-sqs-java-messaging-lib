@@ -18,7 +18,6 @@ package com.amazon.sqs.messaging.lib.core;
 
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +38,7 @@ abstract class AbstractAmazonSqsProducer<E> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSqsProducer.class);
 
-  private final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests;
+  private final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
   private final BlockingQueue<RequestEntry<E>> queueRequests;
 
@@ -47,7 +46,7 @@ abstract class AbstractAmazonSqsProducer<E> {
 
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
-    return CompletableFuture.supplyAsync(() -> enqueueRequest(requestEntry), executorService).get();
+    return enqueueRequest(requestEntry);
   }
 
   @SneakyThrows
@@ -64,7 +63,7 @@ abstract class AbstractAmazonSqsProducer<E> {
 
   @SneakyThrows
   private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> enqueueRequest(final RequestEntry<E> requestEntry) {
-    final ListenableFutureRegistry trackPendingRequest = new ListenableFutureRegistry();
+    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = new ListenableFutureImpl();
     pendingRequests.put(requestEntry.getId(), trackPendingRequest);
     queueRequests.put(requestEntry);
     return trackPendingRequest;
