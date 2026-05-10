@@ -20,6 +20,7 @@
 		<maven.compile.encoding>UTF-8</maven.compile.encoding>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<maven.compiler.optimize>true</maven.compiler.optimize>
 
 		<!-- Dependencies -->
 		<lombok.version>1.18.38</lombok.version>
@@ -328,8 +329,7 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<argLine>${jacoco.argLine} -Dfile.encoding=${project.build.sourceEncoding}
-						-Xms1024m -Xmx1024m</argLine>
+					<argLine>${jacoco.argLine} -Dfile.encoding=${project.build.sourceEncoding} -Xms1024m -Xmx1024m</argLine>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -340,7 +340,6 @@
 						<format>XML</format>
 					</formats>
 					<excludes>
-						<exclude>**/model/**</exclude>
 						<exclude>**/package-info.**</exclude>
 						<exclude>**/generated-sources/**</exclude>
 						<exclude>**/generated-test-sources/**</exclude>
@@ -354,7 +353,7 @@
 							<goal>prepare-agent</goal>
 						</goals>
 						<configuration>
-							<append>true</append>
+							<append>false</append>
 							<propertyName>jacoco.argLine</propertyName>
 							<destFile>../target/site/${project.artifactId}/jacoco.exe</destFile>
 						</configuration>
@@ -366,7 +365,6 @@
 							<goal>report</goal>
 						</goals>
 						<configuration>
-							<append>true</append>
 							<dataFile>../target/site/${project.artifactId}/jacoco.exe</dataFile>
 							<outputDirectory>../target/site/${project.artifactId}</outputDirectory>
 						</configuration>
@@ -389,11 +387,6 @@
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
 							<version>${lombok.version}</version>
-						</annotationProcessorPath>
-						<annotationProcessorPath>
-							<groupId>org.openjdk.jmh</groupId>
-							<artifactId>jmh-generator-annprocess</artifactId>
-							<version>${jmh.version}</version>
 						</annotationProcessorPath>
 					</annotationProcessorPaths>
 				</configuration>
@@ -451,22 +444,28 @@
 				<sonar.projectKey>${project.artifactId}</sonar.projectKey>
 				<sonar.projectName>${project.artifactId}</sonar.projectName>
 				<sonar.projectVersion>${project.version}</sonar.projectVersion>
+				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
+				<sonar.language>java</sonar.language>
 				<sonar.projectBaseDir>.</sonar.projectBaseDir>
+				<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
 				<sonar.coverage.jacoco.xmlReportPaths>target/site/**/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 				<sonar.sources>src/main/java</sonar.sources>
 				<sonar.tests>src/test/java</sonar.tests>
-				<sonar.inclusions>src/main/**</sonar.inclusions>
-				<sonar.exclusions>src/test/**</sonar.exclusions>
-				<sonar.sourceEncoding>${maven.compile.encoding}</sonar.sourceEncoding>
 				<sonar.scm.exclusions.disabled>false</sonar.scm.exclusions.disabled>
-				<sonar.coverage.exclusions>
-					**/model/**,
+
+				<sonar.exclusions>
 					**/package-info.**,
 					**/generated-sources/**,
 					**/generated-test-sources/**,
 					**/test/**
-				</sonar.coverage.exclusions>
-			</properties>
+				</sonar.exclusions>
+
+				<sonar.coverage.exclusions>
+					**/package-info.**,
+					**/generated-sources/**,
+					**/generated-test-sources/**,
+					**/test/**
+				</sonar.coverage.exclusions>			</properties>
 			<activation>
 				<activeByDefault>false</activeByDefault>
 			</activation>
