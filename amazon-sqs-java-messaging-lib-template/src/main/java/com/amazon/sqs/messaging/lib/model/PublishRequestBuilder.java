@@ -60,7 +60,7 @@ public final class PublishRequestBuilder {
     /**
      * Sets the supplier function for creating the publish request.
      *
-     * @param supplier the supplier bi-function (queueUrl, entries) -> request
+     * @param supplier the supplier bi-function (queueUrl, entries)
      * @return this builder
      */
     public Builder<R, E> supplier(final BiFunction<String, List<E>, R> supplier) {
