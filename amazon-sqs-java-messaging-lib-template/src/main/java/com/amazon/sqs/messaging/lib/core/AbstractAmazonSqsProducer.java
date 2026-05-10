@@ -33,6 +33,12 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
+/**
+ * Abstract base class for producing messages to an Amazon SQS queue. Enqueues
+ * request entries and tracks their completion via {@link ListenableFuture}.
+ *
+ * @param <E> the request entry payload type
+ */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSqsProducer<E> {
 
@@ -44,11 +50,20 @@ abstract class AbstractAmazonSqsProducer<E> {
 
   private final ExecutorService executorService;
 
+  /**
+   * Sends a request entry by enqueuing it for batch processing.
+   *
+   * @param requestEntry the request entry to send
+   * @return a {@link ListenableFuture} for tracking the send result
+   */
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
     return enqueueRequest(requestEntry);
   }
 
+  /**
+   * Shuts down the producer's executor service, waiting for ongoing tasks to complete.
+   */
   @SneakyThrows
   public void shutdown() {
     LOGGER.warn("Shutdown producer {}", getClass().getSimpleName());
@@ -61,6 +76,12 @@ abstract class AbstractAmazonSqsProducer<E> {
     }
   }
 
+  /**
+   * Enqueues a request entry and registers a pending future for tracking.
+   *
+   * @param requestEntry the request entry to enqueue
+   * @return a {@link ListenableFuture} for tracking the result
+   */
   @SneakyThrows
   private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> enqueueRequest(final RequestEntry<E> requestEntry) {
     final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> trackPendingRequest = new ListenableFutureImpl();

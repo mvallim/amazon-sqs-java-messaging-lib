@@ -21,16 +21,44 @@ import java.util.function.Consumer;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 
+/**
+ * A listenable future that supports registering success and failure callbacks
+ * for asynchronous result handling.
+ *
+ * @param <S> the success result type
+ * @param <F> the failure result type
+ */
 public interface ListenableFuture<S, F> {
 
+  /**
+   * Registers callbacks for success and failure outcomes.
+   *
+   * @param successCallback the callback invoked on success
+   * @param failureCallback the callback invoked on failure
+   */
   void addCallback(final Consumer<? super S> successCallback, final Consumer<? super F> failureCallback);
 
+  /**
+   * Registers a success callback with a no-op failure callback.
+   *
+   * @param successCallback the callback invoked on success
+   */
   default void addCallback(final Consumer<? super S> successCallback) {
     addCallback(successCallback, result -> { });
   }
 
+  /**
+   * Marks the future as successfully completed.
+   *
+   * @param entry the success entry
+   */
   void success(final ResponseSuccessEntry entry);
 
+  /**
+   * Marks the future as failed.
+   *
+   * @param entry the failure entry
+   */
   void fail(final ResponseFailEntry entry);
 
 }

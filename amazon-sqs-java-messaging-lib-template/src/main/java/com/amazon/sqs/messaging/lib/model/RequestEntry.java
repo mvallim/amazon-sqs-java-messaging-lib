@@ -26,6 +26,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+/**
+ * Represents a request entry to be sent to an SQS queue, containing the payload,
+ * message headers, and optional FIFO attributes.
+ *
+ * @param <T> the payload type
+ */
 @Getter
 @ToString
 @NoArgsConstructor

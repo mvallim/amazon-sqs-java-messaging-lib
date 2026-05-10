@@ -53,6 +53,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 
 // @formatter:off
+/**
+ * Abstract base class for consuming and batching messages from an Amazon SQS queue.
+ * Implements {@link Runnable} to periodically flush batched messages.
+ *
+ * @param <C> the Amazon SQS client type
+ * @param <R> the publish batch request type
+ * @param <O> the publish batch response type
+ * @param <E> the request entry payload type
+ */
 abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
 
   private static final Integer KB = 1024;
@@ -77,6 +86,17 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
 
   private final ExecutorService executorService;
 
+  /**
+   * Constructs a new consumer with the given dependencies.
+   *
+   * @param amazonSqsClient the Amazon SQS client
+   * @param queueProperty   the queue configuration properties
+   * @param objectMapper    the JSON object mapper for payload serialization
+   * @param pendingRequests the map of pending requests keyed by request ID
+   * @param queueRequests   the blocking queue of incoming requests
+   * @param executorService the executor service for async publishing
+   * @param publishDecorator a decorator function applied to batch publish requests
+   */
   protected AbstractAmazonSqsConsumer(
       final C amazonSqsClient,
       final QueueProperty queueProperty,
@@ -97,14 +117,43 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
     scheduledExecutorService.scheduleAtFixedRate(this, 0, queueProperty.getLinger(), TimeUnit.MILLISECONDS);
   }
 
+  /**
+   * Publishes a batch of messages to Amazon SQS.
+   *
+   * @param publishBatchRequest the batch publish request
+   * @return the batch publish response
+   */
   protected abstract O publish(final R publishBatchRequest);
 
+  /**
+   * Handles errors that occur during batch publishing.
+   *
+   * @param publishBatchRequest the batch publish request that failed
+   * @param throwable           the exception that occurred
+   */
   protected abstract void handleError(final R publishBatchRequest, final Throwable throwable);
 
+  /**
+   * Handles the successful response from a batch publish operation, notifying
+   * pending futures of success or failure per entry.
+   *
+   * @param publishBatchResult the batch publish result
+   */
   protected abstract void handleResponse(final O publishBatchResult);
 
+  /**
+   * Provides a factory function that creates a batch publish request from a queue URL
+   * and a list of internal request entries.
+   *
+   * @return a bi-function that creates batch publish requests
+   */
   protected abstract BiFunction<String, List<RequestEntryInternal>, R> supplierPublishRequest();
 
+  /**
+   * Executes the publish operation and handles the response or error.
+   *
+   * @param publishBatchRequest the batch publish request to send
+   */
   private void doPublish(final R publishBatchRequest) {
     try {
       handleResponse(publish(publishDecorator.apply(publishBatchRequest)));
@@ -113,6 +162,12 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
     }
   }
 
+  /**
+   * Publishes a batch of messages, running synchronously for FIFO queues or
+   * asynchronously for standard queues.
+   *
+   * @param publishBatchRequest the batch publish request to send
+   */
   private void publishBatch(final R publishBatchRequest) {
     try {
       final Runnable runnable = () -> doPublish(publishBatchRequest);
@@ -127,6 +182,9 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
     }
   }
 
+  /**
+   * Periodically drains the request queue and publishes batches.
+   */
   @Override
   @SneakyThrows
   public void run() {
@@ -139,6 +197,10 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
     }
   }
 
+  /**
+   * Shuts down the consumer, waiting for all pending requests to complete
+   * before terminating the scheduled and executor services.
+   */
   @SneakyThrows
   public void shutdown() {
     await().thenAccept(result -> {
@@ -165,6 +227,13 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
     }).join();
   }
 
+  /**
+   * Checks if the oldest pending request has waited longer than the batching window.
+   *
+   * @param requests           the blocking queue of requests
+   * @param batchingWindowInMs the batching window in milliseconds
+   * @return true if the oldest request has exceeded the batching window
+   */
   private boolean requestsWaitedFor(final BlockingQueue<RequestEntry<E>> requests, final long batchingWindowInMs) {
     return Optional.ofNullable(requests.peek()).map(oldestPendingRequest -> {
       final long oldestEntryWaitTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - oldestPendingRequest.getCreateTime());
@@ -172,20 +241,47 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
     }).orElse(false);
   }
 
+  /**
+   * Checks if the number of queued requests exceeds the maximum batch size.
+   *
+   * @param requests the blocking queue of requests
+   * @return true if the queue size exceeds the maximum batch size
+   */
   private boolean maxBatchSizeReached(final BlockingQueue<RequestEntry<E>> requests) {
     return requests.size() > queueProperty.getMaxBatchSize();
   }
 
+  /**
+   * Determines whether a request can be added to the current batch based on size and count limits.
+   *
+   * @param batchSizeBytes     the current batch size in bytes
+   * @param requestEntriesSize the current number of entries in the batch
+   * @param request            the request to evaluate
+   * @return true if the request can be added to the batch
+   */
   private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
     return (batchSizeBytes < BATCH_SIZE_BYTES_THRESHOLD)
       && (requestEntriesSize < queueProperty.getMaxBatchSize())
       && Objects.nonNull(request);
   }
 
+  /**
+   * Checks if the batch size is within the allowed payload threshold.
+   *
+   * @param batchSizeBytes the current batch size in bytes
+   * @return true if the batch size is within the threshold
+   */
   private boolean canAddPayload(final int batchSizeBytes) {
     return batchSizeBytes <= BATCH_SIZE_BYTES_THRESHOLD;
   }
 
+  /**
+   * Drains requests from the queue and groups them into a batch publish request,
+   * respecting size limits and handling oversized messages.
+   *
+   * @param requests the blocking queue of requests
+   * @return an optional batch publish request, empty if no requests could be batched
+   */
   @SneakyThrows
   private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) {
     final AtomicInteger batchSizeBytes = new AtomicInteger(0);
@@ -233,6 +329,12 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
       .build());
   }
 
+  /**
+   * Returns a {@link CompletableFuture} that completes when all pending and queued
+   * requests have been processed.
+   *
+   * @return a future that completes when all requests are processed
+   */
   @SneakyThrows
   public CompletableFuture<Void> await() {
     return CompletableFuture.runAsync(() -> {

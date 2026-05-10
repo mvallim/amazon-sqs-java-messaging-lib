@@ -34,8 +34,24 @@ import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
 
 // @formatter:off
+/**
+ * Amazon SQS v2 template providing convenience constructors for creating a fully
+ * configured messaging pipeline using the AWS SDK v2 {@link SqsClient}.
+ *
+ * @param <E> the request entry payload type
+ */
 public class AmazonSqsTemplate<E> extends AbstractAmazonSqsTemplate<SqsClient, SendMessageBatchRequest, SendMessageBatchResponse, E> {
 
+  /**
+   * Primary constructor that wires the producer and consumer together.
+   *
+   * @param amazonSqsClient  the AWS SDK v2 SQS client
+   * @param queueProperty    the queue configuration properties
+   * @param pendingRequests  the map of pending requests
+   * @param queueRequests    the blocking queue of incoming requests
+   * @param objectMapper     the JSON object mapper
+   * @param publishDecorator a decorator for batch publish requests
+   */
   private AmazonSqsTemplate(
       final SqsClient amazonSqsClient,
       final QueueProperty queueProperty,
@@ -49,34 +65,95 @@ public class AmazonSqsTemplate<E> extends AbstractAmazonSqsTemplate<SqsClient, S
     );
   }
 
+  /**
+   * Creates a template with default object mapper and identity publish decorator.
+   *
+   * @param amazonSqsClient the AWS SDK v2 SQS client
+   * @param queueProperty   the queue configuration properties
+   */
   public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty) {
     this(amazonSqsClient, queueProperty, UnaryOperator.identity());
   }
 
+  /**
+   * Creates a template with a custom publish decorator and default object mapper.
+   *
+   * @param amazonSqsClient  the AWS SDK v2 SQS client
+   * @param queueProperty    the queue configuration properties
+   * @param publishDecorator a decorator for batch publish requests
+   */
   public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
     this(amazonSqsClient, queueProperty, new ObjectMapper(), publishDecorator);
   }
 
+  /**
+   * Creates a template with a custom request queue, default object mapper,
+   * and identity publish decorator.
+   *
+   * @param amazonSqsClient the AWS SDK v2 SQS client
+   * @param queueProperty   the queue configuration properties
+   * @param queueRequests   the blocking queue for incoming requests
+   */
   public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> queueRequests) {
     this(amazonSqsClient, queueProperty, queueRequests, UnaryOperator.identity());
   }
 
+  /**
+   * Creates a template with a custom request queue and publish decorator.
+   *
+   * @param amazonSqsClient  the AWS SDK v2 SQS client
+   * @param queueProperty    the queue configuration properties
+   * @param queueRequests    the blocking queue for incoming requests
+   * @param publishDecorator a decorator for batch publish requests
+   */
   public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> queueRequests, final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
     this(amazonSqsClient, queueProperty, queueRequests, new ObjectMapper(), publishDecorator);
   }
 
+  /**
+   * Creates a template with a custom object mapper and identity publish decorator.
+   *
+   * @param amazonSqsClient the AWS SDK v2 SQS client
+   * @param queueProperty   the queue configuration properties
+   * @param objectMapper    the JSON object mapper
+   */
   public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final ObjectMapper objectMapper) {
     this(amazonSqsClient, queueProperty, objectMapper, UnaryOperator.identity());
   }
 
+  /**
+   * Creates a template with a custom object mapper and publish decorator.
+   *
+   * @param amazonSqsClient  the AWS SDK v2 SQS client
+   * @param queueProperty    the queue configuration properties
+   * @param objectMapper     the JSON object mapper
+   * @param publishDecorator a decorator for batch publish requests
+   */
   public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final ObjectMapper objectMapper, final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
     this(amazonSqsClient, queueProperty, new RingBufferBlockingQueue<>(queueProperty.getMaximumPoolSize() * queueProperty.getMaxBatchSize()), objectMapper, publishDecorator);
   }
 
+  /**
+   * Creates a template with a custom request queue and object mapper.
+   *
+   * @param amazonSqsClient the AWS SDK v2 SQS client
+   * @param queueProperty   the queue configuration properties
+   * @param queueRequests   the blocking queue for incoming requests
+   * @param objectMapper    the JSON object mapper
+   */
   public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> queueRequests, final ObjectMapper objectMapper) {
     this(amazonSqsClient, queueProperty, queueRequests, objectMapper, UnaryOperator.identity());
   }
 
+  /**
+   * Creates a template with full custom configuration.
+   *
+   * @param amazonSqsClient  the AWS SDK v2 SQS client
+   * @param queueProperty    the queue configuration properties
+   * @param queueRequests    the blocking queue for incoming requests
+   * @param objectMapper     the JSON object mapper
+   * @param publishDecorator a decorator for batch publish requests
+   */
   public AmazonSqsTemplate(final SqsClient amazonSqsClient, final QueueProperty queueProperty, final BlockingQueue<RequestEntry<E>> queueRequests, final ObjectMapper objectMapper, final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
     this(amazonSqsClient, queueProperty, new ConcurrentHashMap<>(), queueRequests, objectMapper, publishDecorator);
   }
