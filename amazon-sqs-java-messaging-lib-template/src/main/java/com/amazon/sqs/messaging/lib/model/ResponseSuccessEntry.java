@@ -22,6 +22,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+/**
+ * Represents a successful response entry from an SQS batch send operation.
+ */
 @Getter
 @ToString
 @Builder(setterPrefix = "with")

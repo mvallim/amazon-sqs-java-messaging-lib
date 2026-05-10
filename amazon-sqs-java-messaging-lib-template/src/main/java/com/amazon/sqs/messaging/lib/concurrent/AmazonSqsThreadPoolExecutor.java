@@ -22,6 +22,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * A {@link ThreadPoolExecutor} for Amazon SQS operations that tracks active,
+ * failed, and succeeded task counts.
+ */
 public class AmazonSqsThreadPoolExecutor extends ThreadPoolExecutor {
 
   private final AtomicInteger activeTaskCount = new AtomicInteger();
@@ -30,22 +34,46 @@ public class AmazonSqsThreadPoolExecutor extends ThreadPoolExecutor {
 
   private final AtomicInteger succeededTaskCount = new AtomicInteger();
 
+  /**
+   * Creates a thread pool executor with the given maximum pool size, using a
+   * synchronous queue, virtual thread factory, and a 30-second blocking submission policy.
+   *
+   * @param maximumPoolSize the maximum number of threads
+   */
   public AmazonSqsThreadPoolExecutor(final int maximumPoolSize) {
     super(0, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), ThreadFactoryProvider.getThreadFactory(), new BlockingSubmissionPolicy(30000));
   }
 
+  /**
+   * Returns the number of currently active tasks.
+   *
+   * @return the active task count
+   */
   public int getActiveTaskCount() {
     return activeTaskCount.get();
   }
 
+  /**
+   * Returns the number of tasks that have failed.
+   *
+   * @return the failed task count
+   */
   public int getFailedTaskCount() {
     return failedTaskCount.get();
   }
 
+  /**
+   * Returns the number of tasks that have completed successfully.
+   *
+   * @return the succeeded task count
+   */
   public int getSucceededTaskCount() {
     return succeededTaskCount.get();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void beforeExecute(final Thread thread, final Runnable runnable) {
     try {
@@ -55,6 +83,9 @@ public class AmazonSqsThreadPoolExecutor extends ThreadPoolExecutor {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected void afterExecute(final Runnable runnable, final Throwable throwable) {
     try {
