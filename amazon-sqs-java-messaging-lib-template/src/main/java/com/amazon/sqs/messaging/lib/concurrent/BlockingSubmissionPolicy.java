@@ -24,14 +24,30 @@ import java.util.concurrent.TimeUnit;
 
 import lombok.SneakyThrows;
 
+/**
+ * A {@link RejectedExecutionHandler} that blocks the submitting thread until
+ * capacity becomes available in the queue, up to a configurable timeout.
+ */
 public class BlockingSubmissionPolicy implements RejectedExecutionHandler {
 
   private final long timeout;
 
+  /**
+   * Creates a blocking submission policy with the specified timeout.
+   *
+   * @param timeout the maximum time to wait for queue capacity, in milliseconds
+   */
   public BlockingSubmissionPolicy(final long timeout) {
     this.timeout = timeout;
   }
 
+  /**
+   * Attempts to offer the task to the executor's queue, blocking up to the configured timeout.
+   *
+   * @param runnable the rejected task
+   * @param executor the executor that rejected the task
+   * @throws RejectedExecutionException if the timeout is reached
+   */
   @Override
   @SneakyThrows
   public void rejectedExecution(final Runnable runnable, final ThreadPoolExecutor executor) {

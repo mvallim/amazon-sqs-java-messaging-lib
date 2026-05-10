@@ -29,7 +29,11 @@ import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 import lombok.AccessLevel;
 import lombok.Getter;
 
-class ListenableFutureRegistry implements ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> {
+/**
+ * Default implementation of {@link ListenableFuture}. Supports state tracking
+ * (NEW, SUCCESS, FAILURE) and thread-safe callback notification.
+ */
+class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> {
 
   private final Object mutex = new Object();
 
@@ -46,6 +50,9 @@ class ListenableFutureRegistry implements ListenableFuture<ResponseSuccessEntry,
 
   private final Queue<Consumer<? super ResponseFailEntry>> failureCallback = new LinkedList<>();
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void addCallback(final Consumer<? super ResponseSuccessEntry> successCallback, final Consumer<? super ResponseFailEntry> failureCallback) {
     synchronized (mutex) {
@@ -67,6 +74,9 @@ class ListenableFutureRegistry implements ListenableFuture<ResponseSuccessEntry,
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void success(final ResponseSuccessEntry entry) {
     synchronized (mutex) {
@@ -79,6 +89,9 @@ class ListenableFutureRegistry implements ListenableFuture<ResponseSuccessEntry,
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void fail(final ResponseFailEntry entry) {
     synchronized (mutex) {
@@ -91,10 +104,20 @@ class ListenableFutureRegistry implements ListenableFuture<ResponseSuccessEntry,
     }
   }
 
+  /**
+   * Notifies a success callback with the stored result.
+   *
+   * @param callback the callback to invoke
+   */
   private void notifySuccess(final Consumer<? super ResponseSuccessEntry> callback) {
     callback.accept(successResult);
   }
 
+  /**
+   * Notifies a failure callback with the stored result.
+   *
+   * @param callback the callback to invoke
+   */
   private void notifyFailure(final Consumer<? super ResponseFailEntry> callback) {
     callback.accept(failureResult);
   }

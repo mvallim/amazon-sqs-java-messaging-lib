@@ -206,7 +206,7 @@ class AmazonSqsProducerAsyncTest {
 
   @Test
   void testSuccessBlockingSubmissionPolicy() {
-    final QueueProperty topicProperty = QueueProperty.builder()
+    final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(false)
       .linger(50L)
       .maxBatchSize(1)
@@ -214,7 +214,7 @@ class AmazonSqsProducerAsyncTest {
       .queueUrl("http://localhost/000000000000/queue")
       .build();
 
-    final AmazonSqsTemplate<Object> sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, topicProperty);
+    final AmazonSqsTemplate<Object> sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty);
 
     when(amazonSQS.sendMessageBatch(any(SendMessageBatchRequest.class))).thenAnswer(invocation -> {
       while (true) {

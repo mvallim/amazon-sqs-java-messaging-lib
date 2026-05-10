@@ -24,14 +24,30 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Builder for constructing publish batch requests using a supplied factory function.
+ */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PublishRequestBuilder {
 
+  /**
+   * Creates a new builder instance.
+   *
+   * @param <R> the publish request type
+   * @param <E> the entry type
+   * @return a new builder
+   */
   public static <R, E> Builder<R, E> builder() {
     return new Builder<>();
   }
 
+  /**
+   * Builds a publish request using the configured supplier, queue URL, and entries.
+   *
+   * @param <R> the publish request type
+   * @param <E> the entry type
+   */
   @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Builder<R, E> {
 
@@ -41,21 +57,44 @@ public final class PublishRequestBuilder {
 
     private List<E> entries;
 
+    /**
+     * Sets the supplier function for creating the publish request.
+     *
+     * @param supplier the supplier bi-function (queueUrl, entries)
+     * @return this builder
+     */
     public Builder<R, E> supplier(final BiFunction<String, List<E>, R> supplier) {
       this.supplier = supplier;
       return this;
     }
 
+    /**
+     * Sets the queue URL for the publish request.
+     *
+     * @param queueUrl the SQS queue URL
+     * @return this builder
+     */
     public Builder<R, E> queueUrl(final String queueUrl) {
       this.queueUrl = queueUrl;
       return this;
     }
 
+    /**
+     * Sets the entries for the publish request.
+     *
+     * @param entries the list of entries
+     * @return this builder
+     */
     public Builder<R, E> entries(final List<E> entries) {
       this.entries = entries;
       return this;
     }
 
+    /**
+     * Builds the publish request by applying the supplier to the configured URL and entries.
+     *
+     * @return the constructed publish request
+     */
     public R build() {
       return supplier.apply(queueUrl, entries);
     }

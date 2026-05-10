@@ -26,19 +26,19 @@ import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
 
-import com.amazon.sqs.messaging.lib.core.ListenableFutureRegistry.State;
+import com.amazon.sqs.messaging.lib.core.ListenableFutureImpl.State;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 
 // @formatter:off
-class ListenableFutureRegistryTest {
+class ListenableFutureImplTest {
 
   @Test
   void testSuccessWithCallbacksBefore() {
     final Consumer<? super ResponseSuccessEntry> successCallback = entry -> assertThat(entry, notNullValue());
     final Consumer<? super ResponseFailEntry> failureCallback = entry -> assertThat(entry, notNullValue());
 
-    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFutureRegistry = new ListenableFutureRegistry();
+    final ListenableFutureImpl listenableFutureRegistry = new ListenableFutureImpl();
 
     listenableFutureRegistry.addCallback(successCallback, failureCallback);
 
@@ -51,7 +51,7 @@ class ListenableFutureRegistryTest {
     final Consumer<? super ResponseSuccessEntry> successCallback = entry -> assertThat(entry, notNullValue());
     final Consumer<? super ResponseFailEntry> failureCallback = entry -> assertThat(entry, notNullValue());
 
-    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFutureRegistry = new ListenableFutureRegistry();
+    final ListenableFutureImpl listenableFutureRegistry = new ListenableFutureImpl();
 
     listenableFutureRegistry.success(mock(ResponseSuccessEntry.class));
     listenableFutureRegistry.fail(mock(ResponseFailEntry.class));
@@ -63,7 +63,7 @@ class ListenableFutureRegistryTest {
   void testSuccessWithCallbackSuccessBefore() {
     final Consumer<? super ResponseSuccessEntry> successCallback = entry -> assertThat(entry, notNullValue());
 
-    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFutureRegistry = new ListenableFutureRegistry();
+    final ListenableFutureImpl listenableFutureRegistry = new ListenableFutureImpl();
 
     listenableFutureRegistry.addCallback(successCallback, null);
 
@@ -74,7 +74,7 @@ class ListenableFutureRegistryTest {
   void testSuccessWithCallbackSuccessAfter() {
     final Consumer<? super ResponseSuccessEntry> successCallback = entry -> assertThat(entry, notNullValue());
 
-    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFutureRegistry = new ListenableFutureRegistry();
+    final ListenableFutureImpl listenableFutureRegistry = new ListenableFutureImpl();
 
     listenableFutureRegistry.success(mock(ResponseSuccessEntry.class));
 
@@ -85,7 +85,7 @@ class ListenableFutureRegistryTest {
   void testSuccessWithCallbackFailBefore() {
     final Consumer<? super ResponseFailEntry> failureCallback = entry -> assertThat(entry, notNullValue());
 
-    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFutureRegistry = new ListenableFutureRegistry();
+    final ListenableFutureImpl listenableFutureRegistry = new ListenableFutureImpl();
 
     listenableFutureRegistry.addCallback(null, failureCallback);
 
@@ -96,7 +96,7 @@ class ListenableFutureRegistryTest {
   void testSuccessWithCallbackFailAfter() {
     final Consumer<? super ResponseFailEntry> failureCallback = entry -> assertThat(entry, notNullValue());
 
-    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFutureRegistry = new ListenableFutureRegistry();
+    final ListenableFutureImpl listenableFutureRegistry = new ListenableFutureImpl();
 
     listenableFutureRegistry.fail(mock(ResponseFailEntry.class));
 
@@ -105,7 +105,7 @@ class ListenableFutureRegistryTest {
 
   @Test
   void testSuccessWithoutCallbacksBefore() {
-    final ListenableFutureRegistry listenableFutureRegistry = new ListenableFutureRegistry();
+    final ListenableFutureImpl listenableFutureRegistry = new ListenableFutureImpl();
 
     listenableFutureRegistry.addCallback(null, null);
 
@@ -118,7 +118,7 @@ class ListenableFutureRegistryTest {
 
   @Test
   void testSuccessWithoutCallbacksAfter() {
-    final ListenableFutureRegistry listenableFutureRegistry = new ListenableFutureRegistry();
+    final ListenableFutureImpl listenableFutureRegistry = new ListenableFutureImpl();
 
     listenableFutureRegistry.fail(mock(ResponseFailEntry.class));
 
