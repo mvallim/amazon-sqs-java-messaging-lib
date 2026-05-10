@@ -21,15 +21,17 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
+import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
+import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 
 // @formatter:off
 class AmazonSqsProducer<E> extends AbstractAmazonSqsProducer<E> {
 
   public AmazonSqsProducer(
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
-      final BlockingQueue<RequestEntry<E>> topicRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
+      final BlockingQueue<RequestEntry<E>> queueRequests,
       final ExecutorService executorService) {
-    super(pendingRequests, topicRequests, executorService);
+    super(pendingRequests, queueRequests, executorService);
   }
 
 }

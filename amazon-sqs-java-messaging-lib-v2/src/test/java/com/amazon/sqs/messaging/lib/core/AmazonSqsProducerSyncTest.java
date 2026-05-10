@@ -62,7 +62,7 @@ class AmazonSqsProducerSyncTest {
 
   @BeforeEach
   public void before() throws Exception {
-    final QueueProperty topicProperty = QueueProperty.builder()
+    final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(true)
       .linger(50L)
       .maxBatchSize(10)
@@ -70,7 +70,7 @@ class AmazonSqsProducerSyncTest {
       .queueUrl("http://localhost/000000000000/queue")
       .build();
 
-    sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, topicProperty);
+    sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty);
   }
 
   @Test

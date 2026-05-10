@@ -54,7 +54,7 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<SqsClient, SendMess
       final SqsClient amazonSqsClient,
       final QueueProperty queueProperty,
       final ObjectMapper objectMapper,
-      final ConcurrentMap<String, ListenableFutureRegistry> pendingRequests,
+      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
       final BlockingQueue<RequestEntry<E>> queueRequests,
       final ExecutorService executorService,
       final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
