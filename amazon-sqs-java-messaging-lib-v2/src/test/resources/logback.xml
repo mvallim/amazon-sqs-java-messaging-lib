@@ -10,4 +10,6 @@
         <appender-ref ref="STDOUT" />
     </root>
 
+    <logger name="com.amazon.sqs.messaging.lib.core.AmazonSqsConsumer" level="OFF" />
+
 </configuration>
