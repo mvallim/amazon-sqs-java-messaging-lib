@@ -94,7 +94,7 @@ public final class ExecutorsProvider {
     
     final int dotPos = version.indexOf('.');
     final int dashPos = version.indexOf('-');
-    final int endIndex = dotPos > -1 ? dotPos : dashPos > -1 ? dashPos : 1;
+    final int endIndex = dotPos > -1 ? dotPos : dashPos > -1 ? dashPos : version.length();
     
     return Integer.parseInt(version.substring(0, endIndex));
   }
