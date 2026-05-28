@@ -28,7 +28,6 @@
 		<mockito.version>4.11.0</mockito.version>
 		<junit.jupiter.version>5.10.2</junit.jupiter.version>
 		<jackson-databind.version>2.16.1</jackson-databind.version>
-		<jmh.version>1.37</jmh.version>
 		<awaitility.version>4.2.2</awaitility.version>
 		<assertj-core.version>3.24.2</assertj-core.version>
 		<commons-lang3.version>3.20.0</commons-lang3.version>
@@ -283,16 +282,16 @@
 					<artifactId>maven-source-plugin</artifactId>
 					<version>${maven-source-plugin.version}</version>
 				</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>${maven-surefire-plugin.version}</version>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-failsafe-plugin</artifactId>
-				<version>${maven-failsafe-plugin.version}</version>
-			</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>${maven-surefire-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-failsafe-plugin</artifactId>
+					<version>${maven-failsafe-plugin.version}</version>
+				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-javadoc-plugin</artifactId>
