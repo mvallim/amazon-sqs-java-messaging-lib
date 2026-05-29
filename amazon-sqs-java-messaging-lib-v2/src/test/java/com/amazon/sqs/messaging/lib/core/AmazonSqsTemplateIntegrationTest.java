@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -90,7 +91,7 @@ class AmazonSqsTemplateIntegrationTest {
 
     standardQueueUrl = sqsClient.createQueue(request -> request.queueName("it-standard-queue")).queueUrl();
 
-    final Map<QueueAttributeName, String> fifoAttributes = new HashMap<>();
+    final Map<QueueAttributeName, String> fifoAttributes = new EnumMap<>(QueueAttributeName.class);
     fifoAttributes.put(QueueAttributeName.FIFO_QUEUE, "true");
     fifoAttributes.put(QueueAttributeName.CONTENT_BASED_DEDUPLICATION, "true");
 
