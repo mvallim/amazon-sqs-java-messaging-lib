@@ -99,11 +99,9 @@ class AmazonSqsTemplateIT {
     fifoAttributes.put(QueueAttributeName.FifoQueue.toString(), "true");
     fifoAttributes.put(QueueAttributeName.ContentBasedDeduplication.toString(), "true");
 
-    fifoQueueUrl = sqsClient.createQueue(
-      new CreateQueueRequest()
-        .withQueueName("integration-test-fifo-" + UUID.randomUUID() + ".fifo")
-        .withAttributes(fifoAttributes)
-    ).getQueueUrl();
+    fifoQueueUrl = sqsClient.createQueue(new CreateQueueRequest()
+      .withQueueName("it-fifo-queue.fifo")
+      .withAttributes(fifoAttributes)).getQueueUrl();
   }
 
   @AfterAll

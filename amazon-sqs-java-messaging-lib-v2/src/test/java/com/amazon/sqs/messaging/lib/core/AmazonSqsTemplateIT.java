@@ -56,7 +56,6 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
 import software.amazon.awssdk.services.sqs.model.PurgeQueueRequest;
@@ -86,26 +85,18 @@ class AmazonSqsTemplateIT {
     sqsClient = SqsClient.builder()
       .endpointOverride(localstack.getEndpoint())
       .region(Region.of(localstack.getRegion()))
-      .credentialsProvider(StaticCredentialsProvider.create(
-        AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
+      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
       .build();
 
-    standardQueueUrl = sqsClient.createQueue(
-      CreateQueueRequest.builder()
-        .queueName("integration-test-standard-" + UUID.randomUUID())
-        .build()
-    ).queueUrl();
+    standardQueueUrl = sqsClient.createQueue(request -> request.queueName("it-standard-queue")).queueUrl();
 
     final Map<QueueAttributeName, String> fifoAttributes = new HashMap<>();
     fifoAttributes.put(QueueAttributeName.FIFO_QUEUE, "true");
     fifoAttributes.put(QueueAttributeName.CONTENT_BASED_DEDUPLICATION, "true");
 
-    fifoQueueUrl = sqsClient.createQueue(
-      CreateQueueRequest.builder()
-        .queueName("integration-test-fifo-" + UUID.randomUUID() + ".fifo")
-        .attributes(fifoAttributes)
-        .build()
-    ).queueUrl();
+    fifoQueueUrl = sqsClient.createQueue(request -> request
+      .queueName("it-fifo-queue.fifo")
+      .attributes(fifoAttributes)).queueUrl();
   }
 
   @AfterAll
