@@ -203,7 +203,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
    */
   @SneakyThrows
   public void shutdown() {
-    await().thenAccept(result -> {
+    await().thenRun(() -> {
       try {
         LOGGER.warn("Shutdown consumer {}", getClass().getSimpleName());
 
