@@ -61,7 +61,7 @@ class AmazonSqsProducerSyncTest {
   private SqsClient amazonSQS;
 
   @BeforeEach
-  public void before() {
+  void before() {
     final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(true)
       .linger(50L)
