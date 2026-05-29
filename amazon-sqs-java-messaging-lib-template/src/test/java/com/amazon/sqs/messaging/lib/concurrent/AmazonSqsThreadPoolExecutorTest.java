@@ -17,6 +17,7 @@
 package com.amazon.sqs.messaging.lib.concurrent;
 
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -46,11 +47,7 @@ class AmazonSqsThreadPoolExecutorTest {
 
     for(int i = 0; i < 300; i++) {
       amazonSqsThreadPoolExecutor.execute(() -> {
-        try {
-          Thread.sleep(1);
-        } catch (final InterruptedException e) {
-          e.printStackTrace();
-        }
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
       });
     }
 
@@ -95,11 +92,7 @@ class AmazonSqsThreadPoolExecutorTest {
     for(int i = 0; i < 10; i++) {
       amazonSqsThreadPoolExecutor.execute(() -> {
         while(true) {
-          try {
-            Thread.sleep(1);
-          } catch (final InterruptedException e) {
-            e.printStackTrace();
-          }
+          await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
         }
       });
     }
@@ -121,11 +114,7 @@ class AmazonSqsThreadPoolExecutorTest {
 
     amazonSqsThreadPoolExecutor.execute(() -> {
       while(true) {
-        try {
-          Thread.sleep(1);
-        } catch (final InterruptedException e) {
-          e.printStackTrace();
-        }
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
       }
     });
 

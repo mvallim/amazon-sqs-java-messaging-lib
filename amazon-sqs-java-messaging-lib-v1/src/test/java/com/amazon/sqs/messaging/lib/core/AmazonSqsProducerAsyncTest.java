@@ -16,6 +16,7 @@
 
 package com.amazon.sqs.messaging.lib.core;
 
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -217,7 +219,7 @@ class AmazonSqsProducerAsyncTest {
 
     when(amazonSQS.sendMessageBatch(any())).thenAnswer(invocation -> {
       while (true) {
-        Thread.sleep(1);
+        await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> true);
       }
     });
 

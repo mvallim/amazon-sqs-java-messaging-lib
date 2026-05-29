@@ -28,6 +28,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -189,10 +190,11 @@ class AbstractAmazonSqsConsumerTest {
       final RequestEntry<String> entry = buildRequestEntry("fifo-message");
       queueRequests.put(entry);
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
-      assertThat(consumer.getHandleResponseCallCount(), greaterThanOrEqualTo(1));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getHandleResponseCallCount(), greaterThanOrEqualTo(1));
+        });
     });
   }
 
@@ -208,9 +210,10 @@ class AbstractAmazonSqsConsumerTest {
       final RequestEntry<String> entry = buildRequestEntry("non-fifo-message");
       queueRequests.put(entry);
 
-      Thread.sleep(LINGER_MS * 3);
-
-      verify(executorService, atLeastOnce()).execute(any(Runnable.class));
+      await()
+        .untilAsserted(() ->
+          verify(executorService, atLeastOnce()).execute(any(Runnable.class))
+        );
     });
   }
 
@@ -224,10 +227,11 @@ class AbstractAmazonSqsConsumerTest {
       final RequestEntry<String> entry = buildRequestEntry("error-message");
       queueRequests.put(entry);
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
-      assertThat(consumer.getLastError(), is(notNullValue()));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getLastError(), is(notNullValue()));
+        });
     });
   }
 
@@ -240,20 +244,22 @@ class AbstractAmazonSqsConsumerTest {
 
       queueRequests.put(buildRequestEntry("fail-message"));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getLastError(), instanceOf(RuntimeException.class));
-      assertThat(consumer.getLastError().getMessage(), containsString("publish failed"));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getLastError(), instanceOf(RuntimeException.class));
+          assertThat(consumer.getLastError().getMessage(), containsString("publish failed"));
+        });
     });
   }
 
   @Test
   void testRunDoesNotPublishWhenQueueIsEmpty() throws Exception {
-    Thread.sleep(LINGER_MS * 3);
-
     context(consumer -> {
-      assertThat(consumer.getPublishCallCount(), is(0));
-      assertThat(consumer.getHandleErrorCallCount(), is(0));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), is(0));
+          assertThat(consumer.getHandleErrorCallCount(), is(0));
+        });
     });
   }
 
@@ -266,9 +272,10 @@ class AbstractAmazonSqsConsumerTest {
         queueRequests.put(buildRequestEntry("message-" + i));
       }
 
-      Thread.sleep(LINGER_MS * 4);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
+      await()
+        .untilAsserted(() ->
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1))
+        );
     });
   }
 
@@ -282,9 +289,10 @@ class AbstractAmazonSqsConsumerTest {
         queueRequests.put(buildRequestEntry("msg-" + i));
       }
 
-      Thread.sleep(LINGER_MS * 6);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+      await()
+        .untilAsserted(() ->
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2))
+        );
     });
   }
 
@@ -344,9 +352,10 @@ class AbstractAmazonSqsConsumerTest {
     context(trackingDecorator, consumer -> {
       queueRequests.put(buildRequestEntry("decorated-message"));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
+      await()
+        .untilAsserted(() ->
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1))
+        );
     });
   }
 
@@ -357,10 +366,11 @@ class AbstractAmazonSqsConsumerTest {
     context(consumer -> {
       queueRequests.put(buildRequestEntry("identity-message"));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
-      assertThat(consumer.getHandleErrorCallCount(), is(0));
+      await()
+      .untilAsserted(() -> {
+        assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(1));
+        assertThat(consumer.getHandleErrorCallCount(), is(0));
+      });
     });
   }
 
@@ -371,10 +381,11 @@ class AbstractAmazonSqsConsumerTest {
     context(consumer -> {
       queueRequests.put(buildRequestEntry("small-payload"));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getTotalPublishedEntries(), is(1));
-      assertThat(consumer.getHandleErrorCallCount(), is(0));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getTotalPublishedEntries(), is(1));
+          assertThat(consumer.getHandleErrorCallCount(), is(0));
+        });
     });
   }
 
@@ -386,10 +397,11 @@ class AbstractAmazonSqsConsumerTest {
       final String payloadAtThreshold = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold());
       queueRequests.put(buildRequestEntry(payloadAtThreshold));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getTotalPublishedEntries(), is(1));
-      assertThat(consumer.getHandleErrorCallCount(), is(0));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getTotalPublishedEntries(), is(1));
+          assertThat(consumer.getHandleErrorCallCount(), is(0));
+        });
     });
   }
 
@@ -401,12 +413,13 @@ class AbstractAmazonSqsConsumerTest {
       final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold() + 1);
       queueRequests.put(buildRequestEntry(oversizedPayload));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getTotalPublishedEntries(), is(1));
-      assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
-      assertThat(consumer.getLastError(), instanceOf(MaximumAllowedMessageException.class));
-      assertThat(consumer.getLastError().getMessage(), containsString("1024KB"));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getTotalPublishedEntries(), is(1));
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getLastError(), instanceOf(MaximumAllowedMessageException.class));
+          assertThat(consumer.getLastError().getMessage(), containsString("1024KB"));
+        });
     });
   }
 
@@ -421,10 +434,11 @@ class AbstractAmazonSqsConsumerTest {
       queueRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
       queueRequests.put(buildRequestEntry("small-overflow"));
 
-      Thread.sleep(LINGER_MS * 6);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
-      assertThat(consumer.getTotalPublishedEntries(), is(3));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+          assertThat(consumer.getTotalPublishedEntries(), is(3));
+        });
     });
   }
 
@@ -438,10 +452,11 @@ class AbstractAmazonSqsConsumerTest {
       queueRequests.put(buildRequestEntry(buildPayloadOfBytes(fullThreshold)));
       queueRequests.put(buildRequestEntry("second-entry"));
 
-      Thread.sleep(LINGER_MS * 6);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
-      assertThat(consumer.getPublishedBatchSizes().get(0), is(1));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+          assertThat(consumer.getPublishedBatchSizes().get(0), is(1));
+        });
     });
   }
 
@@ -455,10 +470,11 @@ class AbstractAmazonSqsConsumerTest {
         queueRequests.put(buildRequestEntry("entry-" + i));
       }
 
-      Thread.sleep(LINGER_MS * 4);
-
-      assertThat(consumer.getTotalPublishedEntries(), is(10));
-      assertThat(consumer.getHandleErrorCallCount(), is(0));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getTotalPublishedEntries(), is(10));
+          assertThat(consumer.getHandleErrorCallCount(), is(0));
+        });
     });
   }
 
@@ -473,10 +489,11 @@ class AbstractAmazonSqsConsumerTest {
       queueRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
       queueRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
 
-      Thread.sleep(LINGER_MS * 8);
-
-      assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
-      assertThat(consumer.getTotalPublishedEntries(), is(3));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getPublishCallCount(), greaterThanOrEqualTo(2));
+          assertThat(consumer.getTotalPublishedEntries(), is(3));
+        });
     });
   }
 
@@ -488,10 +505,11 @@ class AbstractAmazonSqsConsumerTest {
       final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold() + 100);
       queueRequests.put(buildRequestEntry(oversizedPayload));
 
-      Thread.sleep(LINGER_MS * 3);
-
-      assertThat(consumer.getTotalPublishedEntries(), is(1));
-      assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getTotalPublishedEntries(), is(1));
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+        });
     });
   }
 
