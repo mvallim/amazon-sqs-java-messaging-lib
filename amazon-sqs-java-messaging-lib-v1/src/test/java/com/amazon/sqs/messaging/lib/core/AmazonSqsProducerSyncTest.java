@@ -59,7 +59,7 @@ class AmazonSqsProducerSyncTest {
   private AmazonSQS amazonSQS;
 
   @BeforeEach
-  public void before() throws Exception {
+  public void before() {
     final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(true)
       .linger(50L)
@@ -124,7 +124,7 @@ class AmazonSqsProducerSyncTest {
       final SendMessageBatchRequest request = invocation.getArgument(0, SendMessageBatchRequest.class);
       final List<SendMessageBatchResultEntry> resultEntries = request.getEntries().stream()
         .map(entry -> new SendMessageBatchResultEntry().withId(entry.getId()))
-        .collect(Collectors.toList());;
+        .collect(Collectors.toList());
       return new SendMessageBatchResult().withSuccessful(resultEntries);
     });
 
