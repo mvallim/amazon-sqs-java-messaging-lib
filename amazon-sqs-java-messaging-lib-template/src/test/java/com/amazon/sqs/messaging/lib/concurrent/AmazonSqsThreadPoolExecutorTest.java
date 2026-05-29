@@ -109,7 +109,7 @@ class AmazonSqsThreadPoolExecutorTest {
   }
 
   @Test
-  void testSuccessBlockingSubmissionPolicy() throws InterruptedException {
+  void testSuccessBlockingSubmissionPolicy() {
     final AmazonSqsThreadPoolExecutor amazonSqsThreadPoolExecutor = new AmazonSqsThreadPoolExecutor(1);
 
     amazonSqsThreadPoolExecutor.execute(() -> {

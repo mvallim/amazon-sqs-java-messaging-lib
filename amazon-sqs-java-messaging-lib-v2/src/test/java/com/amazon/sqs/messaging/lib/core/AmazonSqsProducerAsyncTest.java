@@ -64,7 +64,7 @@ class AmazonSqsProducerAsyncTest {
   private SqsClient amazonSQS;
 
   @BeforeEach
-  public void before() throws Exception {
+  public void before() {
     final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(false)
       .linger(50L)
@@ -129,7 +129,7 @@ class AmazonSqsProducerAsyncTest {
       final SendMessageBatchRequest request = invocation.getArgument(0, SendMessageBatchRequest.class);
       final List<SendMessageBatchResultEntry> resultEntries = request.entries().stream()
         .map(entry -> SendMessageBatchResultEntry.builder().id(entry.id()).build())
-        .collect(Collectors.toList());;
+        .collect(Collectors.toList());
       return SendMessageBatchResponse.builder().successful(resultEntries).build();
     });
 
@@ -154,7 +154,7 @@ class AmazonSqsProducerAsyncTest {
       final SendMessageBatchRequest request = invocation.getArgument(0, SendMessageBatchRequest.class);
       final List<BatchResultErrorEntry> resultEntries = request.entries().stream()
         .map(entry -> BatchResultErrorEntry.builder().id(entry.id()).build())
-        .collect(Collectors.toList());;
+        .collect(Collectors.toList());
       return SendMessageBatchResponse.builder().failed(resultEntries).build();
     });
 
@@ -229,7 +229,7 @@ class AmazonSqsProducerAsyncTest {
     }));
 
     entries(2).forEach(entry -> {
-      sqsTemplate.send(entry).addCallback(null, failureCallback);;
+      sqsTemplate.send(entry).addCallback(null, failureCallback);
     });
 
     verify(failureCallback, timeout(40000).times(1)).accept(any());
