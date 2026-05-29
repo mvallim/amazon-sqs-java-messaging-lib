@@ -71,6 +71,7 @@ class AmazonSqsProducerAsyncTest {
       .maximumPoolSize(10)
       .queueUrl("http://localhost/000000000000/queue")
       .build();
+
     sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty, new RingBufferBlockingQueue<>(1024));
   }
 
