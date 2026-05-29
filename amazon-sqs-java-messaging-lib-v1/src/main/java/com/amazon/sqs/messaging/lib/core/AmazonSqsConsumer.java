@@ -113,16 +113,16 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<AmazonSQS, SendMess
 
     LOGGER.error("Error processing batch request: {}", message, throwable);
 
-    publishBatchRequest.getEntries().forEach(entry -> {
-      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture -> {
+    publishBatchRequest.getEntries().forEach(entry ->
+      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture ->
         listenableFuture.fail(ResponseFailEntry.builder()
           .withId(entry.getId())
           .withCode(code)
           .withMessage(message)
           .withSenderFault(true)
-          .build());
-      });
-    });
+          .build())
+      )
+    );
   }
 
   /**
@@ -130,26 +130,26 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<AmazonSQS, SendMess
    */
   @Override
   protected void handleResponse(final SendMessageBatchResult publishBatchResult) {
-    publishBatchResult.getSuccessful().forEach(entry -> {
-      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture -> {
+    publishBatchResult.getSuccessful().forEach(entry ->
+      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture ->
         listenableFuture.success(ResponseSuccessEntry.builder()
           .withId(entry.getId())
           .withMessageId(entry.getMessageId())
           .withSequenceNumber(entry.getSequenceNumber())
-          .build());
-      });
-    });
+          .build())
+      )
+    );
 
-    publishBatchResult.getFailed().forEach(entry -> {
-      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture -> {
+    publishBatchResult.getFailed().forEach(entry ->
+      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture ->
         listenableFuture.fail(ResponseFailEntry.builder()
           .withId(entry.getId())
           .withCode(entry.getCode())
           .withMessage(entry.getMessage())
           .withSenderFault(entry.getSenderFault())
-          .build());
-      });
-    });
+          .build())
+      )
+    );
   }
 
 }
