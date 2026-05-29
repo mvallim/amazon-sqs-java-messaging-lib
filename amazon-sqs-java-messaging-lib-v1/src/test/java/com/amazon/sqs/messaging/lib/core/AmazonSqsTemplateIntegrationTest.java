@@ -69,7 +69,7 @@ import lombok.SneakyThrows;
 // @formatter:off
 @Testcontainers
 @SuppressWarnings("resource")
-class AmazonSqsTemplateIT {
+class AmazonSqsTemplateIntegrationTest {
 
   @Container
   static LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.4.0"))

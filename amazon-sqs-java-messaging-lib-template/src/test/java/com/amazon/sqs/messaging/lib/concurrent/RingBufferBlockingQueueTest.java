@@ -97,7 +97,7 @@ class RingBufferBlockingQueueTest {
       assertThat(ringBlockingQueue.take().getValue(), is(1));
     });
 
-    Thread.sleep(2000);
+    await().pollDelay(2000, TimeUnit.MILLISECONDS).until(() -> true);
 
     producer.submit(() -> {
       ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(0).build());
@@ -126,7 +126,7 @@ class RingBufferBlockingQueueTest {
       ringBlockingQueue.put(RequestEntry.<Integer>builder().withValue(1).build());
     });
 
-    Thread.sleep(2000);
+    await().pollDelay(2000, TimeUnit.MILLISECONDS).until(() -> true);
 
     consumer.submit(() -> {
       assertThat(ringBlockingQueue.take().getValue(), is(0));
