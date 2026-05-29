@@ -450,6 +450,16 @@
 		</profile>
 
 		<profile>
+			<id>25</id>
+			<activation>
+				<jdk>25</jdk>
+			</activation>
+			<properties>
+				<java.version>25</java.version>
+			</properties>
+		</profile>
+
+		<profile>
 			<id>sonar</id>
 			<properties>
 				<sonar.organization>mvallim</sonar.organization>
