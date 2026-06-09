@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,8 +56,10 @@ class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, Res
   @Override
   public void addCallback(final Consumer<? super ResponseSuccessEntry> successCallback, final Consumer<? super ResponseFailEntry> failureCallback) {
     synchronized (mutex) {
-      final Consumer<? super ResponseSuccessEntry> success = Objects.nonNull(successCallback) ? successCallback : result -> { };
-      final Consumer<? super ResponseFailEntry> failure = Objects.nonNull(failureCallback) ? failureCallback : result -> { };
+      final Consumer<? super ResponseSuccessEntry> success = Objects.nonNull(successCallback) ? successCallback : result -> {
+      };
+      final Consumer<? super ResponseFailEntry> failure = Objects.nonNull(failureCallback) ? failureCallback : result -> {
+      };
 
       switch (state) {
         case NEW:

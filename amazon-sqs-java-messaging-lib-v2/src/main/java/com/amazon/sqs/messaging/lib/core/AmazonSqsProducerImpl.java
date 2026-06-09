@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package com.amazon.sqs.messaging.lib.core;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
 
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
@@ -26,24 +25,22 @@ import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 
 // @formatter:off
 /**
- * Amazon SQS v1 producer implementation. Delegates to {@link AbstractAmazonSqsProducer}.
+ * Amazon SQS v2 producer implementation. Delegates to {@link AbstractAmazonSqsProducer}.
  *
  * @param <E> the request entry payload type
  */
-class AmazonSqsProducer<E> extends AbstractAmazonSqsProducer<E> {
+class AmazonSqsProducerImpl<E> extends AbstractAmazonSqsProducer<E> {
 
   /**
-   * Constructs a v1 SQS producer.
+   * Constructs a v2 SQS producer.
    *
    * @param pendingRequests the map of pending requests
    * @param queueRequests   the blocking queue of incoming requests
-   * @param executorService the executor service
    */
-  public AmazonSqsProducer(
+  public AmazonSqsProducerImpl(
       final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
-      final BlockingQueue<RequestEntry<E>> queueRequests,
-      final ExecutorService executorService) {
-    super(pendingRequests, queueRequests, executorService);
+      final BlockingQueue<RequestEntry<E>> queueRequests) {
+    super(pendingRequests, queueRequests);
   }
 
 }

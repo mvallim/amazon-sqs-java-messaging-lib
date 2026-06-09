@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ class RingBufferBlockingQueueTest {
   void testSuccess() {
     final ExecutorService producer = Executors.newSingleThreadExecutor();
 
-    final ScheduledExecutorService consumer = Executors.newSingleThreadScheduledExecutor();
+    final ScheduledExecutorService consumer = Executors.newSingleThreadScheduledExecutor(ThreadFactoryProvider.getThreadFactory());
 
     final List<RequestEntry<Integer>> requestEntriesOut = new LinkedList<>();
 
@@ -68,10 +68,11 @@ class RingBufferBlockingQueueTest {
       }
     }, 0, 100L, TimeUnit.MILLISECONDS);
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.writeSequence() == 99_999);
-    producer.shutdownNow();
+    await().pollInterval(5, TimeUnit.SECONDS).pollDelay(200, TimeUnit.MILLISECONDS).until(() -> {
+      return (ringBlockingQueue.writeSequence() == 99_999) && (ringBlockingQueue.readSequence() == 100_000);
+    });
 
-    await().atMost(1, TimeUnit.MINUTES).until(() -> ringBlockingQueue.readSequence() == 100_000);
+    producer.shutdownNow();
     consumer.shutdownNow();
 
     assertThat(ringBlockingQueue.isEmpty(), is(true));
