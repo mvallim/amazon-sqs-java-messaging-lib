@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,8 @@ import lombok.SneakyThrows;
 
 /**
  * Provides {@link ThreadFactory} instances, selecting between virtual thread
- * factories (Java 21+) and default thread factories based on the runtime Java version.
+ * factories (Java 21+) and default thread factories based on the runtime Java
+ * version.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ThreadFactoryProvider {

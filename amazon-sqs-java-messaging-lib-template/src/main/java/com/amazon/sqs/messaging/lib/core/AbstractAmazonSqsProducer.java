@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,9 @@
 
 package com.amazon.sqs.messaging.lib.core;
 
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
@@ -33,6 +28,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
+//@formatter:off
 /**
  * Abstract base class for producing messages to an Amazon SQS queue. Enqueues
  * request entries and tracks their completion via {@link ListenableFuture}.
@@ -40,15 +36,13 @@ import lombok.SneakyThrows;
  * @param <E> the request entry payload type
  */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-abstract class AbstractAmazonSqsProducer<E> {
+abstract class AbstractAmazonSqsProducer<E> implements AmazonSqsProducer<E> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSqsProducer.class);
+  private final AtomicReference<State> state = new AtomicReference<>(State.RUNNIG);
 
   private final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
   private final BlockingQueue<RequestEntry<E>> queueRequests;
-
-  private final ExecutorService executorService;
 
   /**
    * Sends a request entry by enqueuing it for batch processing.
@@ -56,24 +50,32 @@ abstract class AbstractAmazonSqsProducer<E> {
    * @param requestEntry the request entry to send
    * @return a {@link ListenableFuture} for tracking the send result
    */
+  @Override
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
-    return enqueueRequest(requestEntry);
+    if (State.RUNNIG.equals(state.get())) {
+      return enqueueRequest(requestEntry);
+    } else {
+      final ListenableFutureImpl listenableFutureImpl = new ListenableFutureImpl();
+
+      listenableFutureImpl.fail(ResponseFailEntry.builder()
+        .withCode("000")
+        .withId(requestEntry.getId())
+        .withMessage(String.format("Producer is currently in %s mode; no further messages will be accepted.", state.get().name()))
+        .withSenderFault(true)
+        .build());
+
+      return listenableFutureImpl;
+    }
   }
 
   /**
-   * Shuts down the producer's executor service, waiting for ongoing tasks to complete.
+   * Transitions the producer to the shutdown state. No further messages will be
+   * accepted once shutdown.
    */
-  @SneakyThrows
+  @Override
   public void shutdown() {
-    LOGGER.warn("Shutdown producer {}", getClass().getSimpleName());
-
-    executorService.shutdown();
-    if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-      LOGGER.warn("Executor service did not terminate in the specified time.");
-      final List<Runnable> droppedTasks = executorService.shutdownNow();
-      LOGGER.warn("Executor service was abruptly shut down. {} tasks will not be executed.", droppedTasks.size());
-    }
+    state.compareAndSet(State.RUNNIG, State.SHUTDOWN);
   }
 
   /**
@@ -88,6 +90,13 @@ abstract class AbstractAmazonSqsProducer<E> {
     pendingRequests.put(requestEntry.getId(), trackPendingRequest);
     queueRequests.put(requestEntry);
     return trackPendingRequest;
+  }
+
+  /**
+   * Lifecycle states of the producer.
+   */
+  enum State {
+    RUNNIG, SHUTDOWN
   }
 
 }

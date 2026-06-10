@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,8 @@ public interface ListenableFuture<S, F> {
    * @param successCallback the callback invoked on success
    */
   default void addCallback(final Consumer<? super S> successCallback) {
-    addCallback(successCallback, result -> { });
+    addCallback(successCallback, result -> {
+    });
   }
 
   /**

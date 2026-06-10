@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,6 +61,16 @@ final class RequestEntryInternalFactory {
   }
 
   /**
+   * Creates an internal request entry, serializing the payload automatically.
+   *
+   * @param requestEntry the source request entry
+   * @return a new internal request entry with serialized payload
+   */
+  public RequestEntryInternal create(final RequestEntry<?> requestEntry) {
+    return create(requestEntry, convertPayload(requestEntry));
+  }
+
+  /**
    * Converts a request entry's value to a byte array. Strings are converted using UTF-8,
    * and other types are serialized using Jackson JSON.
    *
@@ -111,8 +121,6 @@ final class RequestEntryInternalFactory {
     private final ByteBuffer value;
 
     private final Map<String, Object> messageHeaders;
-
-    private final String subject;
 
     private final String groupId;
 

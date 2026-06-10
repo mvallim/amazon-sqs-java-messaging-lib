@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,88 +16,26 @@
 
 package com.amazon.sqs.messaging.lib.concurrent;
 
-import java.util.Objects;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A {@link ThreadPoolExecutor} for Amazon SQS operations that tracks active,
- * failed, and succeeded task counts.
+ * A {@link ThreadPoolExecutor} configured for Amazon SQS publishing. Uses a
+ * {@link SynchronousQueue} with zero core threads, allowing threads to be
+ * created on demand up to the specified maximum pool size. Tasks that cannot be
+ * accepted immediately by the queue will block up to 30 seconds via
+ * {@link BlockingSubmissionPolicy}.
  */
 public class AmazonSqsThreadPoolExecutor extends ThreadPoolExecutor {
 
-  private final AtomicInteger activeTaskCount = new AtomicInteger();
-
-  private final AtomicInteger failedTaskCount = new AtomicInteger();
-
-  private final AtomicInteger succeededTaskCount = new AtomicInteger();
-
   /**
-   * Creates a thread pool executor with the given maximum pool size, using a
-   * synchronous queue, virtual thread factory, and a 30-second blocking submission policy.
+   * Creates a new thread pool executor with the given maximum pool size.
    *
-   * @param maximumPoolSize the maximum number of threads
+   * @param maximumPoolSize the maximum number of threads allowed in the pool
    */
   public AmazonSqsThreadPoolExecutor(final int maximumPoolSize) {
     super(0, maximumPoolSize, 60, TimeUnit.SECONDS, new SynchronousQueue<>(), ThreadFactoryProvider.getThreadFactory(), new BlockingSubmissionPolicy(30000));
-  }
-
-  /**
-   * Returns the number of currently active tasks.
-   *
-   * @return the active task count
-   */
-  public int getActiveTaskCount() {
-    return activeTaskCount.get();
-  }
-
-  /**
-   * Returns the number of tasks that have failed.
-   *
-   * @return the failed task count
-   */
-  public int getFailedTaskCount() {
-    return failedTaskCount.get();
-  }
-
-  /**
-   * Returns the number of tasks that have completed successfully.
-   *
-   * @return the succeeded task count
-   */
-  public int getSucceededTaskCount() {
-    return succeededTaskCount.get();
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected void beforeExecute(final Thread thread, final Runnable runnable) {
-    try {
-      super.beforeExecute(thread, runnable);
-    } finally {
-      activeTaskCount.incrementAndGet();
-    }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected void afterExecute(final Runnable runnable, final Throwable throwable) {
-    try {
-      super.afterExecute(runnable, throwable);
-    } finally {
-      if (Objects.nonNull(throwable)) {
-        failedTaskCount.incrementAndGet();
-      } else {
-        succeededTaskCount.incrementAndGet();
-      }
-      activeTaskCount.decrementAndGet();
-    }
   }
 
 }

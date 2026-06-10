@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,9 +50,9 @@ import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
  * @param <E> the request entry payload type
  */
 @SuppressWarnings("java:S6204")
-class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<SqsClient, SendMessageBatchRequest, SendMessageBatchResponse, E> {
+class AmazonSqsConsumerImpl<E> extends AbstractAmazonSqsConsumer<SqsClient, SendMessageBatchRequest, SendMessageBatchResponse, E> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AmazonSqsConsumer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AmazonSqsConsumerImpl.class);
 
   private static final MessageAttributes messageAttributes = new MessageAttributes();
 
@@ -67,7 +67,7 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<SqsClient, SendMess
    * @param executorService  the executor service for async publishing
    * @param publishDecorator a decorator for batch publish requests
    */
-  public AmazonSqsConsumer(
+  public AmazonSqsConsumerImpl(
       final SqsClient amazonSqsClient,
       final QueueProperty queueProperty,
       final ObjectMapper objectMapper,
@@ -82,7 +82,7 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<SqsClient, SendMess
    * {@inheritDoc}
    */
   @Override
-  protected SendMessageBatchResponse publish(final SendMessageBatchRequest publishBatchRequest) {
+  public SendMessageBatchResponse publish(final SendMessageBatchRequest publishBatchRequest) {
     return amazonSqsClient.sendMessageBatch(publishBatchRequest);
   }
 
@@ -109,7 +109,7 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<SqsClient, SendMess
    * {@inheritDoc}
    */
   @Override
-  protected void handleError(final SendMessageBatchRequest publishBatchRequest, final Throwable throwable) {
+  public void handleError(final SendMessageBatchRequest publishBatchRequest, final Throwable throwable) {
     final String code = throwable instanceof AwsServiceException ? AwsServiceException.class.cast(throwable).awsErrorDetails().errorCode() : "000";
     final String message = throwable instanceof AwsServiceException ? AwsServiceException.class.cast(throwable).awsErrorDetails().errorMessage() : throwable.getMessage();
 
@@ -131,7 +131,7 @@ class AmazonSqsConsumer<E> extends AbstractAmazonSqsConsumer<SqsClient, SendMess
    * {@inheritDoc}
    */
   @Override
-  protected void handleResponse(final SendMessageBatchResponse publishBatchResult) {
+  public void handleResponse(final SendMessageBatchResponse publishBatchResult) {
     publishBatchResult.successful().forEach(entry ->
       Optional.ofNullable(pendingRequests.remove(entry.id())).ifPresent(listenableFuture ->
         listenableFuture.success(ResponseSuccessEntry.builder()
