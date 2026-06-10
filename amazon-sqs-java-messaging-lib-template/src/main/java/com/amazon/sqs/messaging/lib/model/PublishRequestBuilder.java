@@ -25,7 +25,8 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Builder for constructing publish batch requests using a supplied factory function.
+ * Builder for constructing publish batch requests using a supplied factory
+ * function.
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -43,7 +44,8 @@ public final class PublishRequestBuilder {
   }
 
   /**
-   * Builds a publish request using the configured supplier, queue URL, and entries.
+   * Builds a publish request using the configured supplier, queue URL, and
+   * entries.
    *
    * @param <R> the publish request type
    * @param <E> the entry type
@@ -91,7 +93,8 @@ public final class PublishRequestBuilder {
     }
 
     /**
-     * Builds the publish request by applying the supplier to the configured URL and entries.
+     * Builds the publish request by applying the supplier to the configured URL and
+     * entries.
      *
      * @return the constructed publish request
      */

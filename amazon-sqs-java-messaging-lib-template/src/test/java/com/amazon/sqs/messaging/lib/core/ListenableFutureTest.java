@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ class ListenableFutureTest {
     final boolean[] called = { false };
     final ResponseFailEntry entry = mock(ResponseFailEntry.class);
 
-    listenableFuture.addCallback(successCallback -> called[0] = true);
+    listenableFuture.addCallback(callback -> called[0] = true);
     listenableFuture.fail(entry);
 
     assertThat(called[0], is(false));

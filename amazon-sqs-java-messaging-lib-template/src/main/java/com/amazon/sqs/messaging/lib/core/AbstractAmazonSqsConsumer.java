@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,48 +54,64 @@ import lombok.SneakyThrows;
 
 // @formatter:off
 /**
- * Abstract base class for consuming and batching messages from an Amazon SQS queue.
- * Implements {@link Runnable} to periodically flush batched messages.
+ * Abstract base class for Amazon SQS message consumers. Periodically drains a
+ * {@link BlockingQueue} of {@link RequestEntry} items, batches them, and publishes
+ * them to SQS. Subclasses implement the actual publish and response handling logic.
  *
  * @param <C> the Amazon SQS client type
  * @param <R> the publish batch request type
- * @param <O> the publish batch response type
+ * @param <O> the publish batch result type
  * @param <E> the request entry payload type
  */
-abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
+abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, AmazonSqsConsumer<R, O> {
 
+  /**
+   * Kilobyte constant used for size calculations.
+   */
   private static final Integer KB = 1024;
 
+  /**
+   * Maximum batch size threshold of 1024 KB imposed by Amazon SQS.
+   */
   private static final Integer BATCH_SIZE_BYTES_THRESHOLD = 1024 * KB;
 
+  /** Class logger. */
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSqsConsumer.class);
 
+  /** Single-thread scheduler that periodically triggers batch draining. */
   private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(ThreadFactoryProvider.getThreadFactory());
 
+  /** The Amazon SQS client used for publishing batches. */
   protected final C amazonSqsClient;
 
+  /** The topic configuration properties. */
   private final QueueProperty queueProperty;
 
+  /** Factory for creating internal request entry representations. */
   private final RequestEntryInternalFactory requestEntryInternalFactory;
 
+  /** Shared map of pending requests keyed by request ID for async completion. */
   protected final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
+  /** The blocking queue that buffers incoming topic requests. */
   private final BlockingQueue<RequestEntry<E>> queueRequests;
 
+  /** Optional decorator applied to the publish batch request before sending. */
   private final UnaryOperator<R> publishDecorator;
 
+  /** Executor service for asynchronous (non-FIFO) publishing. */
   private final ExecutorService executorService;
 
   /**
-   * Constructs a new consumer with the given dependencies.
+   * Creates a new abstract consumer.
    *
-   * @param amazonSqsClient the Amazon SQS client
-   * @param queueProperty   the queue configuration properties
-   * @param objectMapper    the JSON object mapper for payload serialization
-   * @param pendingRequests the map of pending requests keyed by request ID
-   * @param queueRequests   the blocking queue of incoming requests
-   * @param executorService the executor service for async publishing
-   * @param publishDecorator a decorator function applied to batch publish requests
+   * @param amazonSqsClient  the Amazon SQS client
+   * @param queueProperty    the queue configuration
+   * @param objectMapper     the Jackson ObjectMapper for payload serialization
+   * @param pendingRequests  the shared map of pending requests keyed by request ID
+   * @param queueRequests    the shared blocking queue for queue requests
+   * @param executorService  the executor service for async publishing
+   * @param publishDecorator a decorator for the publish batch request
    */
   protected AbstractAmazonSqsConsumer(
       final C amazonSqsClient,
@@ -116,30 +132,6 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
 
     scheduledExecutorService.scheduleAtFixedRate(this, 0, queueProperty.getLinger(), TimeUnit.MILLISECONDS);
   }
-
-  /**
-   * Publishes a batch of messages to Amazon SQS.
-   *
-   * @param publishBatchRequest the batch publish request
-   * @return the batch publish response
-   */
-  protected abstract O publish(final R publishBatchRequest);
-
-  /**
-   * Handles errors that occur during batch publishing.
-   *
-   * @param publishBatchRequest the batch publish request that failed
-   * @param throwable           the exception that occurred
-   */
-  protected abstract void handleError(final R publishBatchRequest, final Throwable throwable);
-
-  /**
-   * Handles the successful response from a batch publish operation, notifying
-   * pending futures of success or failure per entry.
-   *
-   * @param publishBatchResult the batch publish result
-   */
-  protected abstract void handleResponse(final O publishBatchResult);
 
   /**
    * Provides a factory function that creates a batch publish request from a queue URL
@@ -201,6 +193,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
    * Shuts down the consumer, waiting for all pending requests to complete
    * before terminating the scheduled and executor services.
    */
+  @Override
   @SneakyThrows
   public void shutdown() {
     await().thenRun(() -> {
@@ -335,6 +328,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable {
    *
    * @return a future that completes when all requests are processed
    */
+  @Override
   @SneakyThrows
   public CompletableFuture<Void> await() {
     return CompletableFuture.runAsync(() -> {
