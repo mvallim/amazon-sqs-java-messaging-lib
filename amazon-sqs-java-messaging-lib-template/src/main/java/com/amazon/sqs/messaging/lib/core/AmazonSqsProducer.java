@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,33 @@
 
 package com.amazon.sqs.messaging.lib.core;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 
-// @formatter:off
 /**
- * Amazon SQS v1 producer implementation. Delegates to {@link AbstractAmazonSqsProducer}.
+ * Producer interface for Amazon SQS messaging. Implementations enqueue request
+ * entries for batch publishing and track pending requests for asynchronous
+ * completion.
  *
  * @param <E> the request entry payload type
  */
-class AmazonSqsProducer<E> extends AbstractAmazonSqsProducer<E> {
+public interface AmazonSqsProducer<E> {
 
   /**
-   * Constructs a v1 SQS producer.
+   * Sends a request entry for asynchronous publishing to an SQS topic.
    *
-   * @param pendingRequests the map of pending requests
-   * @param queueRequests   the blocking queue of incoming requests
-   * @param executorService the executor service
+   * @param requestEntry the request entry containing the message payload and
+   *                     metadata
+   * @return a {@link ListenableFuture} that completes when the request is
+   *         processed
    */
-  public AmazonSqsProducer(
-      final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
-      final BlockingQueue<RequestEntry<E>> queueRequests,
-      final ExecutorService executorService) {
-    super(pendingRequests, queueRequests, executorService);
-  }
+  public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry);
+
+  /**
+   * Shuts down the producer, preventing any further messages from being accepted.
+   */
+  public void shutdown();
 
 }
 // @formatter:on

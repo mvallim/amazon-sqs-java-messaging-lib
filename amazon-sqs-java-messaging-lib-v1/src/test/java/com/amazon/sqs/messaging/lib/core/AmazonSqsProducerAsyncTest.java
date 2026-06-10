@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,6 +71,7 @@ class AmazonSqsProducerAsyncTest {
       .maximumPoolSize(10)
       .queueUrl("http://localhost/000000000000/queue")
       .build();
+
     sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty, new RingBufferBlockingQueue<>(1024));
   }
 

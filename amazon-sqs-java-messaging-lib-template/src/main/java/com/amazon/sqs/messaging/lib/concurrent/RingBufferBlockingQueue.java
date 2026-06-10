@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,36 +34,48 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 
 /**
- * A lock-based ring buffer implementation of {@link BlockingQueue} with a fixed
- * capacity. Supports blocking {@code put} and {@code take} operations with
- * fairness policy.
+ * A bounded blocking queue backed by a ring buffer (circular array). Supports
+ * blocking {@link #put(Object)} and {@link #take()} operations. Other
+ * {@link BlockingQueue} methods throw {@link UnsupportedOperationException}.
  *
- * @param <E> the element type
+ * @param <E> the type of elements held in this queue
  */
 public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E> {
 
+  /** Default capacity when no explicit capacity is provided. */
   private static final int DEFAULT_CAPACITY = 2048;
 
+  /** The ring buffer array holding queue entries. */
   private final AtomicReferenceArray<Entry<E>> buffer;
 
+  /** The fixed maximum number of elements the queue can hold. */
   private final int capacity;
 
+  /**
+   * Sequence number tracking the next write position (starts at -1 indicating no
+   * writes).
+   */
   private final AtomicLong writeSequence = new AtomicLong(-1);
 
+  /** Sequence number tracking the next read position. */
   private final AtomicLong readSequence = new AtomicLong(0);
 
+  /** Current number of elements in the queue. */
   private final AtomicInteger size = new AtomicInteger(0);
 
+  /** Fair reentrant lock for coordinating producer/consumer access. */
   private final ReentrantLock reentrantLock;
 
+  /** Condition for consumers waiting when the queue is empty. */
   private final Condition waitingConsumer;
 
+  /** Condition for producers waiting when the queue is full. */
   private final Condition waitingProducer;
 
   /**
-   * Creates a ring buffer blocking queue with the specified capacity.
+   * Creates a ring buffer with the specified capacity.
    *
-   * @param capacity the fixed capacity of the ring buffer
+   * @param capacity the maximum number of elements the queue can hold
    */
   public RingBufferBlockingQueue(final int capacity) {
     this.capacity = capacity;
@@ -75,32 +87,40 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   /**
-   * Creates a ring buffer blocking queue with the default capacity of 2048.
+   * Creates a ring buffer with the default capacity of 2048.
    */
   public RingBufferBlockingQueue() {
     this(RingBufferBlockingQueue.DEFAULT_CAPACITY);
   }
 
   /**
-   * Prevents sequence overflow by wrapping around if the value approaches
-   * Long.MAX_VALUE.
+   * Prevents sequence overflow by wrapping around when the maximum long value is
+   * reached.
    *
    * @param sequence the current sequence value
-   * @return the sequence, or a wrapped value if near overflow
+   * @return the sequence value, wrapped if necessary
    */
   private long avoidSequenceOverflow(final long sequence) {
     return (sequence < Long.MAX_VALUE ? sequence : wrap(sequence));
   }
 
   /**
-   * Computes the buffer index for a given sequence number using modulo
-   * arithmetic.
+   * Wraps a sequence number to a valid buffer index.
    *
-   * @param sequence the sequence number
+   * @param sequence the sequence number to wrap
    * @return the buffer index
    */
   private int wrap(final long sequence) {
     return Math.toIntExact(sequence % capacity);
+  }
+
+  /**
+   * Returns the fixed capacity of this ring buffer.
+   *
+   * @return the capacity
+   */
+  public int capacity() {
+    return capacity;
   }
 
   /**
@@ -120,9 +140,9 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
   }
 
   /**
-   * Checks if the buffer has reached its capacity.
+   * Returns whether the queue is full.
    *
-   * @return true if the buffer is full
+   * @return true if the queue size equals its capacity
    */
   public boolean isFull() {
     return size.get() >= capacity;
@@ -276,6 +296,11 @@ public class RingBufferBlockingQueue<E> extends AbstractQueue<E> implements Bloc
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Internal entry wrapper that holds a value within the ring buffer.
+   *
+   * @param <E> the type of the value
+   */
   @Getter
   @Setter
   static class Entry<E> {

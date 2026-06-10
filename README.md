@@ -1,6 +1,6 @@
 # Amazon SQS Java Messaging Lib
 
-[![Build, Publish Snapshot and Pull Request](https://github.com/mvallim/amazon-sqs-java-messaging-lib/actions/workflows/cd-snapshot.yml/badge.svg)](https://github.com/mvallim/amazon-sqs-java-messaging-lib/actions/workflows/cd-snapshot.yml)
+[![Build, Publish Release](https://github.com/mvallim/amazon-sqs-java-messaging-lib/actions/workflows/cd-release.yml/badge.svg)](https://github.com/mvallim/amazon-sqs-java-messaging-lib/actions/workflows/cd-release.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=amazon-sqs-java-messaging-lib&metric=alert_status)](https://sonarcloud.io/dashboard?id=amazon-sqs-java-messaging-lib)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=amazon-sqs-java-messaging-lib&metric=coverage)](https://sonarcloud.io/dashboard?id=amazon-sqs-java-messaging-lib)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.mvallim/amazon-sqs-java-messaging-lib)](https://img.shields.io/maven-central/v/com.github.mvallim/amazon-sqs-java-messaging-lib)
@@ -16,7 +16,7 @@ Combine multiple requests to optimally utilise the network.
 
 Article [Martin Fowler](https://martinfowler.com) [Request Batch](https://martinfowler.com/articles/patterns-of-distributed-systems/request-batch.html)
 
-_**Compatible JDK 8, 11 and 17**_
+_**Compatible JDK 8, 11, 17, 21 and 25**_
 
 _**Compatible AWS JDK v1 >= 1.12**_
 
