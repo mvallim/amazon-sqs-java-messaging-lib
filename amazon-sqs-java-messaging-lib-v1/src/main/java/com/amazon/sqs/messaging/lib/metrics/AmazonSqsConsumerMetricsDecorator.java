@@ -86,7 +86,7 @@ public class AmazonSqsConsumerMetricsDecorator extends AbstractAmazonSqsConsumer
     publishBatchResult.getFailed().forEach(entry -> failureCounter(entry.getCode(), ERROR_TYPE_AMAZON).increment());
 
     if (failureCount > 0) {
-      LOGGER.warn("SNS batch partially failed: {} succeeded, {} failed", successCount, failureCount);
+      LOGGER.warn("SQS batch partially failed: {} succeeded, {} failed", successCount, failureCount);
     }
   }
 

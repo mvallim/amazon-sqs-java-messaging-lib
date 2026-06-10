@@ -19,7 +19,7 @@ package com.amazon.sqs.messaging.lib.core;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Consumer interface for Amazon SNS messaging. Implementations handle batch
+ * Consumer interface for Amazon SQS messaging. Implementations handle batch
  * publishing of requests and dispatching of responses or errors to pending
  * request futures.
  *

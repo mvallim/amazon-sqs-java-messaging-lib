@@ -114,7 +114,7 @@ abstract class AbstractAmazonSqsTemplate<R, O, E> {
   public static final class Builder<C, R, O, E, T extends AbstractAmazonSqsTemplate<R, O, E>> {
 
     /**
-     * The Amazon SNS client used for publishing.
+     * The Amazon SQS client used for publishing.
      */
     private final C amazonSqsClient;
 

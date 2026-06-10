@@ -16,6 +16,8 @@
 
 package com.amazon.sqs.messaging.lib.core;
 
+import static java.util.function.Function.identity;
+
 import java.util.function.Consumer;
 
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
@@ -44,8 +46,7 @@ public interface ListenableFuture<S, F> {
    * @param successCallback the callback invoked on success
    */
   default void addCallback(final Consumer<? super S> successCallback) {
-    addCallback(successCallback, result -> {
-    });
+    addCallback(successCallback, identity()::apply);
   }
 
   /**
