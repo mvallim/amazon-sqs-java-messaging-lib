@@ -69,7 +69,7 @@ class AbstractAmazonSqsConsumerTest {
   private static final int MAX_BATCH_SIZE = 10;
 
   @Mock(strictness = Strictness.LENIENT)
-  private Object amazonSnsClient;
+  private Object amazonSqsClient;
 
   @Mock(strictness = Strictness.LENIENT)
   private QueueProperty queueProperty;
@@ -522,14 +522,14 @@ class AbstractAmazonSqsConsumerTest {
   }
 
   private void context(final TryConsumer<TestableAmazonSqsConsumer> consumer) throws Exception {
-    try (final TestableAmazonSqsConsumer snsConsumer = new TestableAmazonSqsConsumer(amazonSnsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
-      consumer.accept(snsConsumer);
+    try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+      consumer.accept(sqsConsumer);
     }
   }
 
   private void context(final UnaryOperator<Object> trackingDecorator, final TryConsumer<TestableAmazonSqsConsumer> consumer) throws Exception {
-    try (final TestableAmazonSqsConsumer snsConsumer = new TestableAmazonSqsConsumer(amazonSnsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, trackingDecorator)) {
-      consumer.accept(snsConsumer);
+    try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, trackingDecorator)) {
+      consumer.accept(sqsConsumer);
     }
   }
 
@@ -546,14 +546,14 @@ class AbstractAmazonSqsConsumerTest {
     private final List<Integer> publishedBatchSizes = new LinkedList<>();
 
     TestableAmazonSqsConsumer(
-        final Object amazonSnsClient,
+        final Object amazonSqsClient,
         final QueueProperty queueProperty,
         final ObjectMapper objectMapper,
         final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
         final BlockingQueue<RequestEntry<String>> topicRequests,
         final ExecutorService executorService,
         final UnaryOperator<Object> publishDecorator) {
-      super(amazonSnsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator);
+      super(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator);
     }
 
     @Override

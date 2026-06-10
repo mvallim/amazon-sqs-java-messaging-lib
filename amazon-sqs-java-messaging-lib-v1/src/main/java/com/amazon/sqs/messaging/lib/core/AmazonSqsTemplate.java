@@ -60,7 +60,7 @@ public class AmazonSqsTemplate<E> extends AbstractAmazonSqsTemplate<SendMessageB
   }
 
   /**
-   * Creates a new builder for constructing an {@link AmazonSnsTemplate}.
+   * Creates a new builder for constructing an {@link AmazonSqsTemplate}.
    *
    * @param <E>              the request entry payload type
    * @param amazonSqsClient  the v1 {@link AmazonSQS} client

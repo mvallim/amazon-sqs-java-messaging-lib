@@ -93,7 +93,7 @@ class AbstractAmazonSqsConsumerMetricsDecoratorTest {
   class MetricNameConstants {
 
     @Test
-    void testMetricPublishAttemptsHasSnsPrefix() {
+    void testMetricPublishAttemptsHasSqsPrefix() {
       assertThat(AbstractAmazonSqsConsumerMetricsDecorator.METRIC_PUBLISH_ATTEMPTS, containsString("sqs"));
     }
 

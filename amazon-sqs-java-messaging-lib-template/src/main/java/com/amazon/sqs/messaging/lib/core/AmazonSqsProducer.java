@@ -21,7 +21,7 @@ import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 
 /**
- * Producer interface for Amazon SNS messaging. Implementations enqueue request
+ * Producer interface for Amazon SQS messaging. Implementations enqueue request
  * entries for batch publishing and track pending requests for asynchronous
  * completion.
  *
@@ -30,7 +30,7 @@ import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 public interface AmazonSqsProducer<E> {
 
   /**
-   * Sends a request entry for asynchronous publishing to an SNS topic.
+   * Sends a request entry for asynchronous publishing to an SQS topic.
    *
    * @param requestEntry the request entry containing the message payload and
    *                     metadata

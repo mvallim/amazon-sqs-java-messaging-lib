@@ -152,7 +152,7 @@ class AbstractAmazonSqsTemplateTest {
   }
 
   @Test
-  void testBuilderThrowsWhenAmazonSnsClientIsNull() {
+  void testBuilderThrowsWhenAmazonSqsClientIsNull() {
     final QueueProperty queueProperty = mock(QueueProperty.class);
     assertThrows(NullPointerException.class, () -> new AbstractAmazonSqsTemplate.Builder<>(builder -> null, null, queueProperty));
   }
@@ -209,7 +209,7 @@ class AbstractAmazonSqsTemplateTest {
   }
 
   @Test
-  void testBuilderStoresAmazonSnsClient() {
+  void testBuilderStoresAmazonSqsClient() {
     final Object client = new Object();
     final QueueProperty queueProperty = mock(QueueProperty.class);
     final AbstractAmazonSqsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSqsTemplate.Builder<>(b -> null, client, queueProperty);

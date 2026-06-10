@@ -54,9 +54,9 @@ import lombok.SneakyThrows;
 
 // @formatter:off
 /**
- * Abstract base class for Amazon SNS message consumers. Periodically drains a
+ * Abstract base class for Amazon SQS message consumers. Periodically drains a
  * {@link BlockingQueue} of {@link RequestEntry} items, batches them, and publishes
- * them to SNS. Subclasses implement the actual publish and response handling logic.
+ * them to SQS. Subclasses implement the actual publish and response handling logic.
  *
  * @param <C> the Amazon SQS client type
  * @param <R> the publish batch request type

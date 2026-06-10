@@ -33,7 +33,7 @@ import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 
 // @formatter:off
 /**
- * Abstract base class for decorating an {@link AmazonSnsConsumer} with Micrometer metrics.
+ * Abstract base class for decorating an {@link AmazonSqsConsumer} with Micrometer metrics.
  * Tracks publish attempts, successes, failures, latency, batch size, and inflight counts.
  *
  * @param <I> the publish batch request type
