@@ -19,7 +19,7 @@ package com.amazon.sqs.messaging.lib.core;
 import static java.util.function.Function.identity;
 
 import java.util.LinkedList;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
 
@@ -58,8 +58,8 @@ class ListenableFutureImpl implements ListenableFuture<ResponseSuccessEntry, Res
   @Override
   public void addCallback(final Consumer<? super ResponseSuccessEntry> successCallback, final Consumer<? super ResponseFailEntry> failureCallback) {
     synchronized (mutex) {
-      final Consumer<? super ResponseSuccessEntry> success = Objects.nonNull(successCallback) ? successCallback : identity()::apply;
-      final Consumer<? super ResponseFailEntry> failure = Objects.nonNull(failureCallback) ? failureCallback : identity()::apply;
+      final Consumer<? super ResponseSuccessEntry> success = Optional.ofNullable(successCallback).orElse(identity()::apply);
+      final Consumer<? super ResponseFailEntry> failure = Optional.ofNullable(failureCallback).orElse(identity()::apply);
 
       switch (state) {
         case NEW:
