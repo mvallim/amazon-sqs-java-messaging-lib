@@ -38,7 +38,7 @@ import lombok.SneakyThrows;
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 abstract class AbstractAmazonSqsProducer<E> implements AmazonSqsProducer<E> {
 
-  private final AtomicReference<State> state = new AtomicReference<>(State.RUNNIG);
+  private final AtomicReference<State> state = new AtomicReference<>(State.RUNNING);
 
   private final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
@@ -53,7 +53,7 @@ abstract class AbstractAmazonSqsProducer<E> implements AmazonSqsProducer<E> {
   @Override
   @SneakyThrows
   public ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> send(final RequestEntry<E> requestEntry) {
-    if (State.RUNNIG.equals(state.get())) {
+    if (State.RUNNING.equals(state.get())) {
       return enqueueRequest(requestEntry);
     } else {
       final ListenableFutureImpl listenableFutureImpl = new ListenableFutureImpl();
@@ -75,7 +75,7 @@ abstract class AbstractAmazonSqsProducer<E> implements AmazonSqsProducer<E> {
    */
   @Override
   public void shutdown() {
-    state.compareAndSet(State.RUNNIG, State.SHUTDOWN);
+    state.compareAndSet(State.RUNNING, State.SHUTDOWN);
   }
 
   /**
@@ -96,7 +96,7 @@ abstract class AbstractAmazonSqsProducer<E> implements AmazonSqsProducer<E> {
    * Lifecycle states of the producer.
    */
   enum State {
-    RUNNIG, SHUTDOWN
+    RUNNING, SHUTDOWN
   }
 
 }

@@ -18,8 +18,8 @@ package com.amazon.sqs.messaging.lib.core;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,7 +31,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
@@ -63,6 +62,7 @@ import lombok.SneakyThrows;
  * @param <O> the publish batch result type
  * @param <E> the request entry payload type
  */
+@SuppressWarnings("java:S135")
 abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, AmazonSqsConsumer<R, O> {
 
   /**
@@ -278,7 +278,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
   @SneakyThrows
   private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) {
     final AtomicInteger batchSizeBytes = new AtomicInteger(0);
-    final List<RequestEntryInternal> requestEntries = new LinkedList<>();
+    final List<RequestEntryInternal> requestEntries = new ArrayList<>(queueProperty.getMaxBatchSize());
 
     while (canAddToBatch(batchSizeBytes.get(), requestEntries.size(), requests.peek())) {
       final RequestEntry<E> request = requests.peek();
@@ -299,7 +299,8 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
 
         final String stringPayload = new String(payload, StandardCharsets.UTF_8);
 
-        final String message = String.format("The maximum allowed message size exceeding 1024KB (1,048,576 bytes). Payload: %s, Headers: %s", stringPayload, request.getMessageHeaders());
+        final String message = String.format("The maximum allowed message size exceeding 1024KB (1,048,576 bytes). Payload: %s, Headers: %s",
+          stringPayload, request.getMessageHeaders());
 
         handleError(publishBatchRequest, new MaximumAllowedMessageException(message, requests.take()));
 
@@ -309,8 +310,11 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
         continue;
       }
 
-      if (canAddPayload(batchSizeBytes.addAndGet(messageSize))) {
+      if (canAddPayload(batchSizeBytes.get() + messageSize)) {
         requestEntries.add(requestEntryInternalFactory.create(requests.take(), payload));
+        batchSizeBytes.addAndGet(messageSize);
+      } else {
+        break;
       }
     }
 
@@ -337,8 +341,13 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
   @SneakyThrows
   public CompletableFuture<Void> await() {
     return CompletableFuture.runAsync(() -> {
-      while (MapUtils.isNotEmpty(this.pendingRequests) || CollectionUtils.isNotEmpty(this.queueRequests)) {
-        LockSupport.parkNanos(Duration.ofMillis(queueProperty.getLinger()).toNanos());
+      while (MapUtils.isNotEmpty(pendingRequests) || CollectionUtils.isNotEmpty(queueRequests)) {
+        try {
+          TimeUnit.NANOSECONDS.sleep(Duration.ofMillis(queueProperty.getLinger()).toNanos());
+        } catch (final InterruptedException e) {
+          Thread.currentThread().interrupt();
+          LOGGER.warn("await() interrupted");
+        }
       }
     });
   }
