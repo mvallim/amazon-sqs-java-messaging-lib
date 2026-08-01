@@ -49,9 +49,14 @@ public class BlockingSubmissionPolicy implements RejectedExecutionHandler {
   @Override
   @SneakyThrows
   public void rejectedExecution(final Runnable runnable, final ThreadPoolExecutor executor) {
-    final BlockingQueue<Runnable> queue = executor.getQueue();
-    if (!queue.offer(runnable, timeout, TimeUnit.MILLISECONDS)) {
-      throw new RejectedExecutionException("Timeout");
+    try {
+      final BlockingQueue<Runnable> queue = executor.getQueue();
+      if (!queue.offer(runnable, timeout, TimeUnit.MILLISECONDS)) {
+        throw new RejectedExecutionException("Timeout");
+      }
+    } catch (final InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw ex;
     }
   }
 
