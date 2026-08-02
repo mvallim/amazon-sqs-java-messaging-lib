@@ -47,9 +47,8 @@ import com.amazon.sqs.messaging.lib.model.QueueProperty;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.SneakyThrows;
 
 // @formatter:off
 /**
@@ -178,12 +177,14 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    * Periodically drains the request queue and publishes batches.
    */
   @Override
-  @SneakyThrows
   public void run() {
     try {
       while (requestsWaitedFor(queueRequests, queueProperty.getLinger()) || maxBatchSizeReached(queueRequests)) {
         createBatch(queueRequests).ifPresent(this::publishBatch);
       }
+    } catch (final InterruptedException ex) {
+      LOGGER.error(ex.getMessage(), ex);
+      Thread.currentThread().interrupt();
     } catch (final Exception ex) {
       LOGGER.error(ex.getMessage(), ex);
     }
@@ -194,7 +195,6 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    * before terminating the scheduled and executor services.
    */
   @Override
-  @SneakyThrows
   public void shutdown() {
     await().thenRun(() -> {
       try {
@@ -274,9 +274,10 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    *
    * @param requests the blocking queue of requests
    * @return an optional batch publish request, empty if no requests could be batched
+   * @throws InterruptedException
+   * @throws JsonProcessingException
    */
-  @SneakyThrows
-  private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) {
+  private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) throws InterruptedException, JsonProcessingException {
     final AtomicInteger batchSizeBytes = new AtomicInteger(0);
     final List<RequestEntryInternal> requestEntries = new ArrayList<>(queueProperty.getMaxBatchSize());
 
@@ -322,7 +323,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
       return Optional.empty();
     }
 
-    LOGGER.debug("{}", requestEntries);
+    LOGGER.debug("Created batch with {} entries totaling {} bytes", requestEntries.size(), batchSizeBytes.get());
 
     return Optional.of(PublishRequestBuilder.<R, RequestEntryInternal>builder()
       .supplier(supplierPublishRequest())
@@ -338,7 +339,6 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    * @return a future that completes when all requests are processed
    */
   @Override
-  @SneakyThrows
   public CompletableFuture<Void> await() {
     return CompletableFuture.runAsync(() -> {
       while (MapUtils.isNotEmpty(pendingRequests) || CollectionUtils.isNotEmpty(queueRequests)) {
