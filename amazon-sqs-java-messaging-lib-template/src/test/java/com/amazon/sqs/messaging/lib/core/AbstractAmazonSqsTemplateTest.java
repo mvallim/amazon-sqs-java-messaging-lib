@@ -109,8 +109,9 @@ class AbstractAmazonSqsTemplateTest {
     final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(true)
       .queueUrl("http://localhost/000000000000/queue.fifo")
-      .maximumPoolSize(10)
+      .maximumPoolSize(1)
       .maxBatchSize(10)
+      .linger(10)
       .build();
 
     final ExecutorService executorService = AbstractAmazonSqsTemplate.getExecutorService(queueProperty, new SimpleMeterRegistry());
@@ -309,6 +310,7 @@ class AbstractAmazonSqsTemplateTest {
       .queueUrl("http://localhost/000000000000/queue")
       .maximumPoolSize(4)
       .maxBatchSize(10)
+      .linger(10)
       .build();
 
     final AbstractAmazonSqsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSqsTemplate.Builder<>(b -> {
@@ -326,6 +328,7 @@ class AbstractAmazonSqsTemplateTest {
       .queueUrl("http://localhost/000000000000/queue")
       .maximumPoolSize(4)
       .maxBatchSize(10)
+      .linger(10)
       .build();
 
     final AbstractAmazonSqsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSqsTemplate.Builder<>(b -> {
@@ -343,6 +346,7 @@ class AbstractAmazonSqsTemplateTest {
       .queueUrl("http://localhost/000000000000/queue")
       .maximumPoolSize(4)
       .maxBatchSize(10)
+      .linger(10)
       .build();
 
     final BlockingQueue<RequestEntry<String>> customQueue = new LinkedBlockingDeque<>();
@@ -362,6 +366,7 @@ class AbstractAmazonSqsTemplateTest {
       .queueUrl("http://localhost/000000000000/queue")
       .maximumPoolSize(4)
       .maxBatchSize(10)
+      .linger(10)
       .build();
 
     final AbstractAmazonSqsTemplate sentinel = new AbstractAmazonSqsTemplate(producerMock, consumerMock) { };
