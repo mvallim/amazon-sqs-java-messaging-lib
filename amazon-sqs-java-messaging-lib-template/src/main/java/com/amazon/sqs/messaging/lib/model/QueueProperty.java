@@ -53,8 +53,6 @@ public class QueueProperty {
 
   private static final long DEFAULT_LINGER = 10L;
 
-  private static final int DEFAULT_MAX_BATCHSIZE = 10;
-
   /**
    * Whether the queue is a FIFO queue.
    */
