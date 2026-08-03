@@ -21,7 +21,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // @formatter:off
 /**
@@ -33,12 +37,26 @@ import java.util.stream.Collectors;
 @SuppressWarnings("java:S6204")
 abstract class AbstractMessageAttributes<V> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMessageAttributes.class);
+
+  /**
+   * Data type constant for binary message attributes.
+   */
   protected static final String BINARY = "Binary";
 
+  /**
+   * Data type constant for string message attributes.
+   */
   protected static final String STRING = "String";
 
+  /**
+   * Data type constant for number message attributes.
+   */
   protected static final String NUMBER = "Number";
 
+  /**
+   * Data type constant for string array message attributes.
+   */
   protected static final String STRING_ARRAY = "String.Array";
 
   /**
@@ -64,6 +82,11 @@ abstract class AbstractMessageAttributes<V> {
         messageAttributes.put(key, getBinaryMessageAttribute(ByteBuffer.class.cast(value)));
       } else if (value instanceof List) {
         messageAttributes.put(key, getStringArrayMessageAttribute(List.class.cast(value)));
+      } else {
+        LOGGER.warn(
+          "Message header '{}' has unsupported value type {} and will not be sent as a message attribute",
+          key, Objects.isNull(value) ? "null" : value.getClass().getName()
+        );
       }
     }
 
@@ -82,6 +105,13 @@ abstract class AbstractMessageAttributes<V> {
       .map(String.class::cast)
       .map(value -> "\"" + value + "\"")
       .collect(Collectors.toList());
+
+    if (collect.size() < values.size()) {
+      LOGGER.warn(
+        "String array message attribute contained {} non-String element(s) that were dropped", values.size() - collect.size()
+      );
+    }
+
     return "[ " + String.join(", ", collect) + " ]";
   }
 

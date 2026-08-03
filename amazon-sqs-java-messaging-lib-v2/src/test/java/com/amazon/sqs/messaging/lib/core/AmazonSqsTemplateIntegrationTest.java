@@ -51,6 +51,7 @@ import com.amazon.sqs.messaging.lib.model.QueueProperty;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
+import com.github.dockerjava.api.model.PortBinding;
 
 import lombok.SneakyThrows;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -70,10 +71,14 @@ class AmazonSqsTemplateIntegrationTest {
 
   @Container
   static LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.4.0"))
-    .withEnv("LOCALSTACK_HOST", "localhost:4566")
-    .withEnv("SQS_ENDPOINT_STRATEGY", "dynamic")
+    .withEnv("LOCALSTACK_HOST", "localhost")
+    .withEnv("SQS_ENDPOINT_STRATEGY", "off")
     .withReuse(true)
-    .withServices(Service.SQS);
+    .withExposedPorts(4566)
+    .withServices(Service.SQS)
+    .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
+      .withPortBindings(PortBinding.parse("4566:4566"))
+    );
 
   private static SqsClient sqsClient;
 
