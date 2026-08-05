@@ -23,9 +23,11 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
@@ -37,6 +39,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -46,12 +49,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mock.Strictness;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sqs.messaging.lib.concurrent.RingBufferBlockingQueue;
 import com.amazon.sqs.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
+import com.amazon.sqs.messaging.lib.exception.PoisonRequestEntryException;
 import com.amazon.sqs.messaging.lib.helpers.TryConsumer;
 import com.amazon.sqs.messaging.lib.model.QueueProperty;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
@@ -110,6 +115,42 @@ class AbstractAmazonSqsConsumerTest {
   void testConstructorInitializesTopicRequests() {
     assertThat(topicRequests, is(notNullValue()));
     assertThat(topicRequests.isEmpty(), is(true));
+  }
+
+  @Test
+  void testConstructorThrowsNpeWhenqueuePropertyIsNull() {
+    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+      new TestableAmazonSnsConsumer(amazonSqsClient, null, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
+    );
+
+    assertThat(thrown.getMessage(), containsString("queueProperty cannot be null"));
+  }
+
+  @Test
+  void testConstructorThrowsNpeWhenamazonSqsClientIsNull() {
+    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+      new TestableAmazonSnsConsumer(null, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
+    );
+
+    assertThat(thrown.getMessage(), containsString("amazonSqsClient cannot be null"));
+  }
+
+  @Test
+  void testConstructorThrowsNpeWhenObjectMapperIsNull() {
+    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+      new TestableAmazonSnsConsumer(amazonSqsClient, queueProperty, null, pendingRequests, topicRequests, executorService, publishDecorator)
+    );
+
+    assertThat(thrown.getMessage(), containsString("objectMapper cannot be null"));
+  }
+
+  @Test
+  void testConstructorThrowsNpeWhenExecutorServiceIsNull() {
+    final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
+      new TestableAmazonSnsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, null, publishDecorator)
+    );
+
+    assertThat(thrown.getMessage(), containsString("executorService cannot be null"));
   }
 
   @Test
@@ -247,6 +288,22 @@ class AbstractAmazonSqsConsumerTest {
         .untilAsserted(() -> {
           assertThat(consumer.getLastError(), instanceOf(RuntimeException.class));
           assertThat(consumer.getLastError().getMessage(), containsString("publish failed"));
+        });
+    });
+  }
+
+  @Test
+  void testRunHandlesRejectedExecutionExceptionFromExecutorWithoutCrashing() throws Exception {
+    when(queueProperty.isFifo()).thenReturn(false);
+    doThrow(new RejectedExecutionException("executor full")).when(executorService).execute(any(Runnable.class));
+
+    context(consumer -> {
+      topicRequests.put(buildRequestEntry("rejected-message"));
+
+      await()
+        .untilAsserted(() -> {
+          assertThat(consumer.getHandleErrorCallCount(), greaterThanOrEqualTo(1));
+          assertThat(consumer.getLastError(), instanceOf(RejectedExecutionException.class));
         });
     });
   }
@@ -393,7 +450,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.isFifo()).thenReturn(true);
 
     context(consumer -> {
-      final String payloadAtThreshold = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold());
+      final String payloadAtThreshold = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold());
       topicRequests.put(buildRequestEntry(payloadAtThreshold));
 
       await()
@@ -409,7 +466,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.isFifo()).thenReturn(true);
 
     context(consumer -> {
-      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold() + 1);
+      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 1);
       topicRequests.put(buildRequestEntry(oversizedPayload));
 
       await()
@@ -426,7 +483,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.getMaxBatchSize()).thenReturn(10);
 
     context(consumer -> {
-      final int halfThreshold = TestableAmazonSqsConsumer.batchSizeBytesThreshold() / 2;
+      final int halfThreshold = TestableAmazonSnsConsumer.batchSizeBytesThreshold() / 2;
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
       topicRequests.put(buildRequestEntry("small-overflow"));
@@ -445,7 +502,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.getMaxBatchSize()).thenReturn(10);
 
     context(consumer -> {
-      final int fullThreshold = TestableAmazonSqsConsumer.batchSizeBytesThreshold();
+      final int fullThreshold = TestableAmazonSnsConsumer.batchSizeBytesThreshold();
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(fullThreshold)));
       topicRequests.put(buildRequestEntry("second-entry"));
 
@@ -481,7 +538,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.getMaxBatchSize()).thenReturn(10);
 
     context(consumer -> {
-      final int chunkSize = (TestableAmazonSqsConsumer.batchSizeBytesThreshold() / 3) + 1;
+      final int chunkSize = (TestableAmazonSnsConsumer.batchSizeBytesThreshold() / 3) + 1;
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
@@ -495,11 +552,43 @@ class AbstractAmazonSqsConsumerTest {
   }
 
   @Test
+  void testPoisonRequestEntryRemovesFromPendingRequestsAndFailsListenableFuture() throws Exception {
+    when(queueProperty.isFifo()).thenReturn(true);
+
+    final String poisonId = "poison-id";
+    final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
+    final RequestEntry<String> poisonEntry = RequestEntry.<String>builder()
+      .withId(poisonId)
+      .withValue(oversizedPayload)
+      .build();
+
+    pendingRequests.put(poisonId, listenableFutureImpl);
+
+    context(consumer -> {
+      topicRequests.put(poisonEntry);
+
+      await()
+        .untilAsserted(() -> {
+          assertThat(pendingRequests.containsKey(poisonId), is(false));
+
+          final ArgumentCaptor<ResponseFailEntry> captor = ArgumentCaptor.forClass(ResponseFailEntry.class);
+          verify(listenableFutureImpl, atLeastOnce()).fail(captor.capture());
+
+          final ResponseFailEntry failEntry = captor.getValue();
+          assertThat(failEntry.getId(), is(poisonId));
+          assertThat(failEntry.getCode(), is("000"));
+          assertThat(failEntry.getSenderFault(), is(true));
+          assertThat(failEntry.getThrowable(), instanceOf(PoisonRequestEntryException.class));
+        });
+    });
+  }
+
+  @Test
   void testCanAddPayloadDoesNotPublishEmptyBatchWhenAllEntriesExceedThreshold() throws Exception {
     when(queueProperty.isFifo()).thenReturn(true);
 
     context(consumer -> {
-      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold() + 100);
+      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
       topicRequests.put(buildRequestEntry(oversizedPayload));
 
       await()
@@ -518,19 +607,19 @@ class AbstractAmazonSqsConsumerTest {
     return StringUtils.repeat('x', Math.max(0, targetBytes));
   }
 
-  private void context(final TryConsumer<TestableAmazonSqsConsumer> consumer) throws Exception {
-    try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
-      consumer.accept(sqsConsumer);
+  private void context(final TryConsumer<TestableAmazonSnsConsumer> consumer) throws Exception {
+    try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+      consumer.accept(snsConsumer);
     }
   }
 
-  private void context(final UnaryOperator<Object> trackingDecorator, final TryConsumer<TestableAmazonSqsConsumer> consumer) throws Exception {
-    try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, trackingDecorator)) {
-      consumer.accept(sqsConsumer);
+  private void context(final UnaryOperator<Object> trackingDecorator, final TryConsumer<TestableAmazonSnsConsumer> consumer) throws Exception {
+    try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, trackingDecorator)) {
+      consumer.accept(snsConsumer);
     }
   }
 
-  static class TestableAmazonSqsConsumer extends AbstractAmazonSqsConsumer<Object, Object, Object, String> implements AutoCloseable {
+  static class TestableAmazonSnsConsumer extends AbstractAmazonSqsConsumer<Object, Object, Object, String> implements AutoCloseable {
 
     private static final int BATCH_SIZE_BYTES_THRESHOLD = 1024 * 1024;
 
@@ -542,7 +631,7 @@ class AbstractAmazonSqsConsumerTest {
     private final RuntimeException publishException = new RuntimeException("publish failed");
     private final List<Integer> publishedBatchSizes = new LinkedList<>();
 
-    TestableAmazonSqsConsumer(
+    TestableAmazonSnsConsumer(
         final Object amazonSqsClient,
         final QueueProperty queueProperty,
         final ObjectMapper objectMapper,

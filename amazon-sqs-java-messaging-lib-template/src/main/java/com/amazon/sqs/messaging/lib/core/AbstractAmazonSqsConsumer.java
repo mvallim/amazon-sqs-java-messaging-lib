@@ -119,13 +119,13 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
       final ExecutorService executorService,
       final UnaryOperator<R> publishDecorator) {
 
-    this.amazonSqsClient = amazonSqsClient;
-    this.queueProperty = queueProperty;
-    requestEntryInternalFactory = new RequestEntryInternalFactory(objectMapper);
+    this.queueProperty = Objects.requireNonNull(queueProperty, "queueProperty cannot be null");
+    this.amazonSqsClient = Objects.requireNonNull(amazonSqsClient, "amazonSqsClient cannot be null");
+    requestEntryInternalFactory = new RequestEntryInternalFactory(Objects.requireNonNull(objectMapper, "objectMapper cannot be null"));
     this.pendingRequests = pendingRequests;
     this.queueRequests = queueRequests;
     this.publishDecorator = publishDecorator;
-    this.executorService = executorService;
+    this.executorService = Objects.requireNonNull(executorService, "executorService cannot be null");
 
     scheduledExecutorService.scheduleAtFixedRate(this, 0, queueProperty.getLinger(), TimeUnit.MILLISECONDS);
   }
