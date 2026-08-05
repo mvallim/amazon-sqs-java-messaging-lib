@@ -20,9 +20,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -32,28 +34,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sqs.messaging.lib.core.RequestEntryInternalFactory.MessageAttributesInternal;
 import com.amazon.sqs.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sqs.messaging.lib.exception.PoisonRequestEntryException;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
+@ExtendWith(MockitoExtension.class)
 class RequestEntryInternalFactoryTest {
 
-  private ObjectMapper objectMapper;
-
+  @InjectMocks
   private RequestEntryInternalFactory factory;
 
-  @BeforeEach
-  void setUp() {
-    objectMapper = new ObjectMapper();
-    factory = new RequestEntryInternalFactory(objectMapper);
-  }
+  @Spy
+  private ObjectMapper objectMapper;
 
   private RequestEntry<Object> buildRequestEntry(final Object payload, final Map<String, Object> headers) {
     return RequestEntry.builder()
@@ -274,6 +277,16 @@ class RequestEntryInternalFactoryTest {
 
       assertThat(result.getId(), equalTo("test-id"));
     }
+
+    @Test
+    void testCreateWithUnserializablePayloadThrowsPoisonRequestEntryException() {
+      final RequestEntry<Object> entry = buildMinimalRequestEntry(new UnserializablePayload());
+
+      final PoisonRequestEntryException thrown = assertThrows(PoisonRequestEntryException.class,
+        () -> factory.create(entry));
+
+      assertThat(thrown.getCause(), is(instanceOf(JsonProcessingException.class)));
+    }
   }
 
   @Nested
@@ -338,6 +351,16 @@ class RequestEntryInternalFactoryTest {
       final byte[] result = factory.convertPayload(entry);
 
       assertThat(result.length, equalTo(0));
+    }
+
+    @Test
+    void testConvertPayloadUnserializableObjectThrowsPoisonRequestEntryException() {
+      final RequestEntry<Object> entry = buildMinimalRequestEntry(new UnserializablePayload());
+
+      final PoisonRequestEntryException thrown = assertThrows(PoisonRequestEntryException.class,
+        () -> factory.convertPayload(entry));
+
+      assertThat(thrown.getCause(), is(instanceOf(JsonProcessingException.class)));
     }
   }
 
@@ -485,6 +508,7 @@ class RequestEntryInternalFactoryTest {
       final long now = System.nanoTime();
       final RequestEntryInternal internal = RequestEntryInternal.builder()
         .withId("my-id")
+        .withSubject("my-subject")
         .withGroupId("my-group")
         .withDeduplicationId("my-dedup")
         .withMessageHeaders(headers)
@@ -493,6 +517,7 @@ class RequestEntryInternalFactoryTest {
         .build();
 
       assertThat(internal.getId(), equalTo("my-id"));
+      assertThat(internal.getSubject(), equalTo("my-subject"));
       assertThat(internal.getGroupId(), equalTo("my-group"));
       assertThat(internal.getDeduplicationId(), equalTo("my-dedup"));
       assertThat(internal.getMessageHeaders(), equalTo(headers));
@@ -624,6 +649,18 @@ class RequestEntryInternalFactoryTest {
 
   private enum SampleEnum {
     A, VALUE_ONE
+  }
+
+  /**
+   * A payload type that always fails Jackson serialization, used to exercise the
+   * {@code JsonProcessingException} handling branches in the factory.
+   */
+  private static final class UnserializablePayload {
+
+    public String getValue() {
+      throw new RuntimeException("boom");
+    }
+
   }
 
 }
