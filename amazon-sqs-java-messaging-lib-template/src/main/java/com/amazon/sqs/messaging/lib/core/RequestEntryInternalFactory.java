@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.amazon.sqs.messaging.lib.exception.PoisonRequestEntryException;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -65,9 +66,9 @@ final class RequestEntryInternalFactory {
    *
    * @param requestEntry the source request entry
    * @return a new internal request entry with serialized payload
-   * @throws JsonProcessingException
+   * @throws PoisonRequestEntryException
    */
-  public RequestEntryInternal create(final RequestEntry<?> requestEntry) throws JsonProcessingException {
+  public RequestEntryInternal create(final RequestEntry<?> requestEntry) throws PoisonRequestEntryException {
     return create(requestEntry, convertPayload(requestEntry));
   }
 
@@ -77,12 +78,16 @@ final class RequestEntryInternalFactory {
    *
    * @param requestEntry the request entry
    * @return the serialized payload bytes
-   * @throws JsonProcessingException
+   * @throws PoisonRequestEntryException
    */
-  public byte[] convertPayload(final RequestEntry<?> requestEntry) throws JsonProcessingException {
-    return requestEntry.getValue() instanceof String
-      ? String.class.cast(requestEntry.getValue()).getBytes(StandardCharsets.UTF_8)
-      : objectMapper.writeValueAsBytes(requestEntry.getValue());
+  public byte[] convertPayload(final RequestEntry<?> requestEntry) throws PoisonRequestEntryException {
+    try {
+      return requestEntry.getValue() instanceof String
+        ? String.class.cast(requestEntry.getValue()).getBytes(StandardCharsets.UTF_8)
+        : objectMapper.writeValueAsBytes(requestEntry.getValue());
+    } catch (final JsonProcessingException ex) {
+      throw PoisonRequestEntryException.fromJsonProcessing(ex.getMessage(), ex);
+    }
   }
 
   /**
@@ -113,17 +118,26 @@ final class RequestEntryInternalFactory {
   @Builder(setterPrefix = "with")
   static class RequestEntryInternal {
 
+    /** The creation timestamp in nanoseconds. */
     private final long createTime;
 
+    /** The unique identifier of the request. */
     private final String id;
 
+    /** The serialized payload as a byte buffer. */
     @Getter(value = AccessLevel.PRIVATE)
     private final ByteBuffer value;
 
+    /** Optional message attributes / headers. */
     private final Map<String, Object> messageHeaders;
 
+    /** Optional subject line for the message. */
+    private final String subject;
+
+    /** The message group ID for FIFO topics. */
     private final String groupId;
 
+    /** The message deduplication ID for FIFO topics. */
     private final String deduplicationId;
 
     /**
@@ -154,28 +168,46 @@ final class RequestEntryInternalFactory {
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   static class MessageAttributesInternal extends AbstractMessageAttributes<Integer> {
 
+    /**
+     * Singleton instance of the internal message attributes calculator.
+     */
     public static final MessageAttributesInternal INSTANCE = new MessageAttributesInternal();
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer getEnumMessageAttribute(final Enum<?> value) {
       return value.name().getBytes(StandardCharsets.UTF_8).length;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer getStringMessageAttribute(final String value) {
       return value.getBytes(StandardCharsets.UTF_8).length;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer getNumberMessageAttribute(final Number value) {
       return value.toString().getBytes(StandardCharsets.UTF_8).length;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer getBinaryMessageAttribute(final ByteBuffer value) {
       return value.remaining();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer getStringArrayMessageAttribute(final List<?> values) {
       return stringArray(values).getBytes(StandardCharsets.UTF_8).length;
