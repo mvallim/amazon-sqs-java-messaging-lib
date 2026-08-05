@@ -104,7 +104,7 @@ abstract class AbstractAmazonSqsTemplate<R, O, E> {
     );
   }
 
-  @Getter
+  @Getter(value = AccessLevel.PACKAGE)
   public static final class Builder<C, R, O, E, T extends AbstractAmazonSqsTemplate<R, O, E>> {
 
     /**

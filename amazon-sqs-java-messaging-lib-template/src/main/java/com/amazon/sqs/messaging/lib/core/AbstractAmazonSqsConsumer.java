@@ -16,10 +16,8 @@
 
 package com.amazon.sqs.messaging.lib.core;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,7 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import com.amazon.sqs.messaging.lib.concurrent.ThreadFactoryProvider;
 import com.amazon.sqs.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
-import com.amazon.sqs.messaging.lib.exception.MaximumAllowedMessageException;
+import com.amazon.sqs.messaging.lib.exception.PoisonRequestEntryException;
 import com.amazon.sqs.messaging.lib.model.PublishRequestBuilder;
 import com.amazon.sqs.messaging.lib.model.QueueProperty;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
@@ -173,6 +171,20 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
     }
   }
 
+  private void failPoisonRequestEntry(final PoisonRequestEntryException failRequestEntryException, final RequestEntry<E> requestEntry) {
+    LOGGER.error("Failed to process request {}: {}", requestEntry.getId(), failRequestEntryException.getMessage(), failRequestEntryException);
+
+    Optional.ofNullable(pendingRequests.remove(requestEntry.getId())).ifPresent(listenableFuture ->
+      listenableFuture.fail(ResponseFailEntry.builder()
+        .withId(requestEntry.getId())
+        .withCode("000")
+        .withMessage(failRequestEntryException.getMessage())
+        .withSenderFault(true)
+        .withThrowable(failRequestEntryException)
+        .build())
+    );
+  }
+
   /**
    * Periodically drains the request queue and publishes batches.
    */
@@ -282,40 +294,28 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
     final List<RequestEntryInternal> requestEntries = new ArrayList<>(queueProperty.getMaxBatchSize());
 
     while (canAddToBatch(batchSizeBytes.get(), requestEntries.size(), requests.peek())) {
-      final RequestEntry<E> request = requests.peek();
+      try {
+        final RequestEntry<E> request = requests.peek();
 
-      final byte[] payload = requestEntryInternalFactory.convertPayload(request);
+        final byte[] payload = requestEntryInternalFactory.convertPayload(request);
 
-      final Integer messageBodySize = payload.length;
-      final Integer messageAttributesSize = requestEntryInternalFactory.messageAttributesSize(request);
+        final Integer messageBodySize = payload.length;
+        final Integer messageAttributesSize = requestEntryInternalFactory.messageAttributesSize(request);
 
-      final Integer messageSize = messageBodySize + messageAttributesSize;
+        final Integer messageSize = messageBodySize + messageAttributesSize;
 
-      if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
-        final R publishBatchRequest = PublishRequestBuilder.<R, RequestEntryInternal>builder()
-          .supplier(supplierPublishRequest())
-          .entries(Collections.singletonList(requestEntryInternalFactory.create(request, payload)))
-          .queueUrl(queueProperty.getQueueUrl())
-          .build();
+        if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
+          throw PoisonRequestEntryException.fromMaximumAllowedMessage("The maximum allowed message size exceeding 1024KB (1,048,576 bytes).");
+        }
 
-        final String stringPayload = new String(payload, StandardCharsets.UTF_8);
-
-        final String message = String.format("The maximum allowed message size exceeding 1024KB (1,048,576 bytes). Payload: %s, Headers: %s",
-          stringPayload, request.getMessageHeaders());
-
-        handleError(publishBatchRequest, new MaximumAllowedMessageException(message, requests.take()));
-
-        // This entry was rejected and already removed from the queue above; its size
-        // must NOT be folded into batchSizeBytes, or it would wrongly cut the batch
-        // short even when smaller, valid entries are still waiting right behind it.
-        continue;
-      }
-
-      if (canAddPayload(batchSizeBytes.get() + messageSize)) {
-        requestEntries.add(requestEntryInternalFactory.create(requests.take(), payload));
-        batchSizeBytes.addAndGet(messageSize);
-      } else {
-        break;
+        if (canAddPayload(batchSizeBytes.get() + messageSize)) {
+          requestEntries.add(requestEntryInternalFactory.create(requests.take(), payload));
+          batchSizeBytes.addAndGet(messageSize);
+        } else {
+          break;
+        }
+      } catch (final PoisonRequestEntryException ex) {
+        failPoisonRequestEntry(ex, requests.take());
       }
     }
 
