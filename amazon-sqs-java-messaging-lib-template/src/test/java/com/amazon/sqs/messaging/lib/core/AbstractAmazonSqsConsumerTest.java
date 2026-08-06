@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -629,8 +630,7 @@ class AbstractAmazonSqsConsumerTest {
     private Throwable lastError;
     private boolean throwOnPublish = false;
     private final RuntimeException publishException = new RuntimeException("publish failed");
-    private final List<Integer> publishedBatchSizes = new LinkedList<>();
-
+    private final List<Integer> publishedBatchSizes = Collections.synchronizedList(new LinkedList<>());
     TestableAmazonSnsConsumer(
         final Object amazonSqsClient,
         final QueueProperty queueProperty,
