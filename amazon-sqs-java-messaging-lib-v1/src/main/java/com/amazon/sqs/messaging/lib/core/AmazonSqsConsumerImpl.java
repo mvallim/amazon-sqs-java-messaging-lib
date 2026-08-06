@@ -120,6 +120,7 @@ class AmazonSqsConsumerImpl<E> extends AbstractAmazonSqsConsumer<AmazonSQS, Send
           .withCode(code)
           .withMessage(message)
           .withSenderFault(true)
+          .withThrowable(throwable)
           .build())
       )
     );

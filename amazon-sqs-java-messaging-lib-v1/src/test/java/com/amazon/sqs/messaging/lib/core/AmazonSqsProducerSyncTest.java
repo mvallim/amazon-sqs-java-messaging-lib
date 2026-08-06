@@ -64,8 +64,8 @@ class AmazonSqsProducerSyncTest {
       .fifo(true)
       .linger(50L)
       .maxBatchSize(10)
-      .maximumPoolSize(10)
-      .queueUrl("http://localhost/000000000000/queue")
+      .maximumPoolSize(1)
+      .queueUrl("http://localhost/000000000000/queue.fifo")
       .build();
 
     sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty);

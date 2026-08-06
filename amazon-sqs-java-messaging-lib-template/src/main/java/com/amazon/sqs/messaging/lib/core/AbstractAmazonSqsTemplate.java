@@ -97,20 +97,14 @@ abstract class AbstractAmazonSqsTemplate<R, O, E> {
    * @return a configured thread pool executor
    */
   protected static ExecutorService getExecutorService(final QueueProperty queueProperty, final MeterRegistry meterRegistry) {
-    return queueProperty.isFifo()
-      ? new ExecutorServiceMetricsDecorator(
-          new AmazonSqsThreadPoolExecutor(1),
-          meterRegistry,
-          queueProperty.getQueueUrl()
-        )
-      : new ExecutorServiceMetricsDecorator(
-          new AmazonSqsThreadPoolExecutor(queueProperty.getMaximumPoolSize()),
-          meterRegistry,
-          queueProperty.getQueueUrl()
-        );
+    return new ExecutorServiceMetricsDecorator(
+      new AmazonSqsThreadPoolExecutor(queueProperty.getMaximumPoolSize()),
+      meterRegistry,
+      queueProperty.getQueueUrl()
+    );
   }
 
-  @Getter
+  @Getter(value = AccessLevel.PACKAGE)
   public static final class Builder<C, R, O, E, T extends AbstractAmazonSqsTemplate<R, O, E>> {
 
     /**
