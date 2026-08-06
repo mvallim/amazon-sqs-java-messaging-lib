@@ -91,6 +91,7 @@ abstract class AbstractAmazonSqsProducer<E> implements AmazonSqsProducer<E> {
       queueRequests.put(requestEntry);
       return trackPendingRequest;
     } catch (final InterruptedException ex) {
+      pendingRequests.remove(requestEntry.getId());
       Thread.currentThread().interrupt();
       throw ex;
     }
