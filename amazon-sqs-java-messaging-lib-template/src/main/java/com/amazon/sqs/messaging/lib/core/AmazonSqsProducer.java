@@ -41,8 +41,10 @@ public interface AmazonSqsProducer<E> {
 
   /**
    * Shuts down the producer, preventing any further messages from being accepted.
+   *
+   * @param runnable a callback invoked after the producer transitions to the shutdown state
    */
-  public void shutdown();
+  public void shutdown(final Runnable runnable);
 
 }
 // @formatter:on

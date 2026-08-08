@@ -53,10 +53,13 @@ public final class PublishRequestBuilder {
   @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Builder<R, E> {
 
+    /** The supplier bi-function used to create the publish request. */
     private BiFunction<String, List<E>, R> supplier;
 
+    /** The SQS queue URL the request will target. */
     private String queueUrl;
 
+    /** The entries to include in the publish request. */
     private List<E> entries;
 
     /**

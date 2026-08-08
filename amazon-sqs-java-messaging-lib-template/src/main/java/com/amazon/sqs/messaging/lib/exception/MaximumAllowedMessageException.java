@@ -16,10 +16,19 @@
 
 package com.amazon.sqs.messaging.lib.exception;
 
+/**
+ * Exception thrown when a message payload exceeds the maximum size allowed by
+ * Amazon SQS (1024 KB / 1,048,576 bytes).
+ */
 public class MaximumAllowedMessageException extends PoisonRequestEntryException {
 
   private static final long serialVersionUID = -529663449633021689L;
 
+  /**
+   * Creates a new exception with the given message.
+   *
+   * @param string the detail message
+   */
   MaximumAllowedMessageException(final String string) {
     super(string);
   }

@@ -18,14 +18,18 @@ package com.amazon.sqs.messaging.lib.core;
 
 import static java.util.function.Function.identity;
 
+import java.time.Duration;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 
+// @formatter:off
 /**
- * A listenable future that supports registering success and failure callbacks
- * for asynchronous result handling.
+ * A simplified listenable future that supports registering success and failure callbacks.
+ * Allows asynchronous notification of operation outcomes.
  *
  * @param <S> the success result type
  * @param <F> the failure result type
@@ -33,34 +37,62 @@ import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 public interface ListenableFuture<S, F> {
 
   /**
-   * Registers callbacks for success and failure outcomes.
+   * Registers both success and failure callbacks.
    *
-   * @param successCallback the callback invoked on success
-   * @param failureCallback the callback invoked on failure
+   * @param successCallback the callback to invoke on success (may be null)
+   * @param failureCallback the callback to invoke on failure (may be null)
    */
   void addCallback(final Consumer<? super S> successCallback, final Consumer<? super F> failureCallback);
 
   /**
-   * Registers a success callback with a no-op failure callback.
+   * Registers a success callback; failures are silently ignored.
    *
-   * @param successCallback the callback invoked on success
+   * @param successCallback the callback to invoke on success
    */
   default void addCallback(final Consumer<? super S> successCallback) {
     addCallback(successCallback, identity()::apply);
   }
 
   /**
-   * Marks the future as successfully completed.
+   * Marks the future as completed successfully with the given entry.
    *
-   * @param entry the success entry
+   * @param entry the success result
    */
   void success(final ResponseSuccessEntry entry);
 
   /**
-   * Marks the future as failed.
+   * Marks the future as failed with the given entry.
    *
-   * @param entry the failure entry
+   * @param entry the failure result
    */
   void fail(final ResponseFailEntry entry);
 
+  /**
+   * Waits, if necessary, for this future to complete, then returns its success result.
+   * <p>
+   * Mirrors the contract of {@link java.util.concurrent.Future#get()}: if the future
+   * completed with a failure, this throws {@link ExecutionException} instead of returning.
+   * The exception's cause is the {@link Throwable} carried by the failure result, if any
+   * (see {@link ResponseFailEntry}), or a new exception built from the
+   * failure result's message otherwise.
+   *
+   * @return the success result
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   * @throws ExecutionException   if the future completed with a failure
+   */
+  S get() throws InterruptedException, ExecutionException;
+
+  /**
+   * Waits, if necessary, for at most the given timeout for this future to complete, then
+   * returns its success result. See {@link #get()} for failure semantics.
+   *
+   * @param timeout the maximum time to wait
+   * @return the success result
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   * @throws ExecutionException   if the future completed with a failure
+   * @throws TimeoutException     if the timeout elapses before the future completes
+   */
+  S get(final Duration timeout) throws InterruptedException, ExecutionException, TimeoutException;
+
 }
+// @formatter:on

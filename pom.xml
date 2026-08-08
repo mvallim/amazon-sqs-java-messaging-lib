@@ -6,7 +6,7 @@
 
 	<groupId>com.github.mvallim</groupId>
 	<artifactId>amazon-sqs-java-messaging-lib</artifactId>
-	<version>1.3.2-SNAPSHOT</version>
+	<version>1.4.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>${project.artifactId}</name>
@@ -246,13 +246,7 @@
 			<artifactId>testcontainers</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>localstack</artifactId>
-			<scope>test</scope>
-		</dependency>
-		
+	
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>junit-jupiter</artifactId>
