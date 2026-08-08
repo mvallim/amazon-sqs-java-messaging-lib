@@ -78,6 +78,10 @@ public class QueueProperty {
    */
   private final int maxBatchSize;
 
+  /**
+   * Validates {@link QueueProperty} instances against the SQS constraints for
+   * pool size, queue URL format, linger, batch size, and FIFO consistency.
+   */
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   static final class QueuePropertyValidator extends AbstractValidator<QueueProperty> {
 
@@ -129,6 +133,10 @@ public class QueueProperty {
 
   }
 
+  /**
+   * Builder for {@link QueueProperty} that applies the default linger value when
+   * none is explicitly configured and validates the assembled properties.
+   */
   @SuppressWarnings("java:S116")
   public static class QueuePropertyBuilder {
 
@@ -140,12 +148,25 @@ public class QueueProperty {
      */
     private boolean linger$set;
 
+    /**
+     * Sets the batching linger time in milliseconds.
+     *
+     * @param linger the linger time in milliseconds
+     * @return this builder
+     */
     public QueuePropertyBuilder linger(final long linger) {
       this.linger = linger;
       linger$set = true;
       return this;
     }
 
+    /**
+     * Builds the {@link QueueProperty}, applying the default linger value if none
+     * was explicitly set and validating the result.
+     *
+     * @return the validated queue property
+     * @throws IllegalArgumentException if the assembled properties fail validation
+     */
     public QueueProperty build() {
       final long linger = linger$set ? this.linger : DEFAULT_LINGER;
 

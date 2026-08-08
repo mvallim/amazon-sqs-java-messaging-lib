@@ -87,6 +87,8 @@ abstract class AbstractAmazonSqsProducer<E> implements AmazonSqsProducer<E> {
   /**
    * Transitions the producer to the shutdown state. No further messages will be
    * accepted once shutdown.
+   *
+   * @param runnable a callback invoked after the producer transitions to the shutdown state
    */
   @Override
   public void shutdown(final Runnable runnable) {

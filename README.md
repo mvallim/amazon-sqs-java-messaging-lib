@@ -6,9 +6,11 @@
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.mvallim/amazon-sqs-java-messaging-lib)](https://img.shields.io/maven-central/v/com.github.mvallim/amazon-sqs-java-messaging-lib)
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
-The Amazon SQS Java Messaging Library holds the compatible classes, that are used for communicating with Amazon Simple Queue Service. This project builds on top of the AWS SDK for Java to use Amazon SQS provider for the messaging applications without running any additional software.
+The Amazon SQS Java Messaging Library provides an asynchronous, batched messaging client for Amazon SQS, supporting both AWS SDK v1 (`AmazonSQS`) and v2 (`SqsClient`). It features configurable batching with linger time, FIFO ordering, message attributes, and Micrometer metrics.
 
 > The batch size should be chosen based on the size of individual messages and available network bandwidth as well as the observed latency and throughput improvements based on the real life load. These are configured to some sensible defaults assuming smaller message sizes and the optimal batch size for server side processing.
+
+> For detailed architecture, threading model, batching behavior, and exception handling, see the [Technical Guide](GUIDE.md).
 
 ## Request Batch
 
@@ -114,7 +116,7 @@ repositories {
 > via the [Custom `BlockingQueue`](#custom-blockingqueue) option below, which does not round up) rather than
 > relying on the `maximumPoolSize * maxBatchSize` formula as an exact figure.
 
-#### Determining the type of `BlockingQueue` with its maximum capacity
+#### Custom `BlockingQueue`
 
 ```java
 final QueueProperty queueProperty = QueueProperty.builder()
@@ -124,12 +126,13 @@ final QueueProperty queueProperty = QueueProperty.builder()
   .maximumPoolSize(20)
   .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
-  
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(
-  amazonSqS, QueueProperty, new LinkedBlockingQueue<>(100));
+
+AmazonSqsTemplate<MyMessage> sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty)
+  .queueRequests(new LinkedBlockingQueue<>(100))
+  .build();
 ```
 
-#### Using an `ObjectMapper` other than the default
+#### Custom `ObjectMapper`
 
 ```java
 final QueueProperty queueProperty = QueueProperty.builder()
@@ -139,12 +142,13 @@ final QueueProperty queueProperty = QueueProperty.builder()
   .maximumPoolSize(20)
   .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
-  
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(
-  amazonSqS, queueProperty, new ObjectMapper<>());
+
+AmazonSqsTemplate<MyMessage> sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty)
+  .objectMapper(new ObjectMapper())
+  .build();
 ```
 
-#### Using an `ObjectMapper` and a `BlockingQueue` other than the default
+#### Custom `BlockingQueue` and `ObjectMapper`
 
 ```java
 final QueueProperty queueProperty = QueueProperty.builder()
@@ -154,9 +158,27 @@ final QueueProperty queueProperty = QueueProperty.builder()
   .maximumPoolSize(20)
   .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
-  
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(
-  amazonSqS, queueProperty, new LinkedBlockingQueue<>(100), new ObjectMapper<>());
+
+AmazonSqsTemplate<MyMessage> sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty)
+  .queueRequests(new LinkedBlockingQueue<>(100))
+  .objectMapper(new ObjectMapper())
+  .build();
+```
+
+#### With Micrometer metrics
+
+```java
+final QueueProperty queueProperty = QueueProperty.builder()
+  .fifo(false)
+  .linger(100)
+  .maxBatchSize(10)
+  .maximumPoolSize(20)
+  .queueUrl("http://localhost:4566/000000000000/queue")
+  .build();
+
+AmazonSqsTemplate<MyMessage> sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty)
+  .meterRegistry(new SimpleMeterRegistry())
+  .build();
 ```
 
 ### Standard SQS
@@ -170,7 +192,7 @@ final QueueProperty queueProperty = QueueProperty.builder()
   .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
 
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, queueProperty);
+AmazonSqsTemplate<MyMessage> sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty).build();
 
 final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withValue(new MyMessage())
@@ -187,11 +209,11 @@ final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(true)
   .linger(100)
   .maxBatchSize(10)
-  .maximumPoolSize(20)
+  .maximumPoolSize(1)
   .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
 
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, queueProperty);
+AmazonSqsTemplate<MyMessage> sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty).build();
 
 final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withValue(new MyMessage())
@@ -210,11 +232,11 @@ final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(true)
   .linger(100)
   .maxBatchSize(10)
-  .maximumPoolSize(20)
+  .maximumPoolSize(1)
   .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
 
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, queueProperty);
+AmazonSqsTemplate<MyMessage> sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty).build();
 
 final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withValue(new MyMessage())
@@ -223,14 +245,14 @@ final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withDeduplicationId(UUID.randomUUID().toString())
   .build();
 
-sqsTemplate.send(requestEntry).addCallback(result -> {
-  successCallback -> LOGGER.info("{}", successCallback), 
-  failureCallback -> LOGGER.error("{}", failureCallback)
-});
+sqsTemplate.send(requestEntry).addCallback(
+  success -> LOGGER.info("Sent: {}", success.getMessageId()),
+  failure -> LOGGER.error("Failed: {} [{}]", failure.getMessage(), failure.getCode())
+);
 
-sqsTemplate.send(requestEntry).addCallback(result -> {
-  successCallback -> LOGGER.info("{}", successCallback)
-});
+sqsTemplate.send(requestEntry).addCallback(
+  success -> LOGGER.info("Sent: {}", success.getMessageId())
+);
 ```
 
 ### Send And Wait
@@ -240,11 +262,11 @@ final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(true)
   .linger(100)
   .maxBatchSize(10)
-  .maximumPoolSize(20)
+  .maximumPoolSize(1)
   .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
 
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, queueProperty);
+AmazonSqsTemplate<MyMessage> sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty).build();
 
 final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withValue(new MyMessage())
@@ -253,10 +275,10 @@ final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withDeduplicationId(UUID.randomUUID().toString())
   .build();
 
-sqsTemplate.send(requestEntry).addCallback(result -> {
-  successCallback -> LOGGER.info("{}", successCallback), 
-  failureCallback -> LOGGER.error("{}", failureCallback)
-});
+sqsTemplate.send(requestEntry).addCallback(
+  success -> LOGGER.info("Sent: {}", success.getMessageId()),
+  failure -> LOGGER.error("Failed: {} [{}]", failure.getMessage(), failure.getCode())
+);
 
 sqsTemplate.await().join();
 ```
@@ -268,11 +290,11 @@ final QueueProperty queueProperty = QueueProperty.builder()
   .fifo(true)
   .linger(100)
   .maxBatchSize(10)
-  .maximumPoolSize(20)
+  .maximumPoolSize(1)
   .queueUrl("http://localhost:4566/000000000000/queue")
   .build();
 
-final AmazonSqsTemplate<MyMessage> sqsTemplate = new AmazonSqsTemplate<>(amazonSqS, queueProperty);
+AmazonSqsTemplate<MyMessage> sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty).build();
 
 final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withValue(new MyMessage())
@@ -281,13 +303,85 @@ final RequestEntry<MyMessage> requestEntry = RequestEntry.builder()
   .withDeduplicationId(UUID.randomUUID().toString())
   .build();
 
-sqsTemplate.send(requestEntry).addCallback(result -> {
-  successCallback -> LOGGER.info("{}", successCallback), 
-  failureCallback -> LOGGER.error("{}", failureCallback)
-});
+sqsTemplate.send(requestEntry).addCallback(
+  success -> LOGGER.info("Sent: {}", success.getMessageId()),
+  failure -> LOGGER.error("Failed: {} [{}]", failure.getMessage(), failure.getCode())
+);
 
 sqsTemplate.shutdown();
 ```
+
+### Full Example with Builder
+
+```java
+QueueProperty queueProperty = QueueProperty.builder()
+  .fifo(false)
+  .linger(100L)
+  .maxBatchSize(10)
+  .maximumPoolSize(5)
+  .queueUrl("http://localhost:4566/000000000000/queue")
+  .build();
+
+AmazonSqsTemplate<MyMessage> template = AmazonSqsTemplate.builder(sqsClient, queueProperty)
+  .meterRegistry(new SimpleMeterRegistry())
+  .queueRequests(new RingBufferBlockingQueue<>(1024))
+  .objectMapper(new ObjectMapper())
+  .build();
+
+template.send(RequestEntry.<MyMessage>builder()
+  .withValue(new MyMessage("hello"))
+  .withMessageHeaders(Map.of("source", "app-1"))
+  .withGroupId(UUID.randomUUID().toString())
+  .build());
+
+template.await().thenRun(template::shutdown).join();
+```
+
+---
+
+## Metrics
+
+When a `MeterRegistry` is provided via the builder, the library records these Micrometer metrics:
+
+### SQS Publish
+
+Tags: `queue` = `<queueUrl>`
+
+| Metric                   | Type                | Description                                                |
+|--------------------------|---------------------|------------------------------------------------------------|
+| `sqs.publish.attempts`   | Counter             | Total SendMessageBatch attempts                            |
+| `sqs.publish.success`    | Counter             | Successful messages                                        |
+| `sqs.publish.failure`    | Counter             | Failed messages (dynamic tags: `error_code`, `error_type`) |
+| `sqs.publish.duration`   | Timer               | Publish latency (p50/p95/p99)                              |
+| `sqs.publish.batch.size` | DistributionSummary | Messages per batch                                         |
+| `sqs.publish.inflight`   | Gauge               | In-flight publish batches                                  |
+
+### Blocking Queue
+
+Tags: `name` = `<queueName>`
+
+| Metric                         | Type    | Description                             |
+|--------------------------------|---------|-----------------------------------------|
+| `blocking.queue.puts.total`    | Counter | Successful put operations               |
+| `blocking.queue.puts.failed`   | Counter | Put operations that threw an exception  |
+| `blocking.queue.put.duration`  | Timer   | Put latency (percentile histogram)      |
+| `blocking.queue.takes.total`   | Counter | Successful take operations              |
+| `blocking.queue.takes.failed`  | Counter | Take operations that threw an exception |
+| `blocking.queue.take.duration` | Timer   | Take latency (percentile histogram)     |
+| `blocking.queue.size`          | Gauge   | Current queue depth                     |
+
+### Executor
+
+Tags: `name` = `<executorName>`
+
+| Metric                     | Type    | Description                       |
+|----------------------------|---------|-----------------------------------|
+| `executor.active`          | Gauge   | Tasks currently executing         |
+| `executor.tasks.succeeded` | Counter | Tasks completed without exception |
+| `executor.tasks.failed`    | Counter | Tasks completed with exception    |
+| `executor.task.duration`   | Timer   | Task wall-clock duration          |
+
+---
 
 ## Contributing
 
