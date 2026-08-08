@@ -121,7 +121,7 @@ class AbstractAmazonSqsConsumerTest {
   @Test
   void testConstructorThrowsNpeWhenqueuePropertyIsNull() {
     final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-      new TestableAmazonSnsConsumer(amazonSqsClient, null, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
+      new TestableAmazonSqsConsumer(amazonSqsClient, null, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
     );
 
     assertThat(thrown.getMessage(), containsString("queueProperty cannot be null"));
@@ -130,7 +130,7 @@ class AbstractAmazonSqsConsumerTest {
   @Test
   void testConstructorThrowsNpeWhenamazonSqsClientIsNull() {
     final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-      new TestableAmazonSnsConsumer(null, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
+      new TestableAmazonSqsConsumer(null, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)
     );
 
     assertThat(thrown.getMessage(), containsString("amazonSqsClient cannot be null"));
@@ -139,7 +139,7 @@ class AbstractAmazonSqsConsumerTest {
   @Test
   void testConstructorThrowsNpeWhenObjectMapperIsNull() {
     final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-      new TestableAmazonSnsConsumer(amazonSqsClient, queueProperty, null, pendingRequests, topicRequests, executorService, publishDecorator)
+      new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, null, pendingRequests, topicRequests, executorService, publishDecorator)
     );
 
     assertThat(thrown.getMessage(), containsString("objectMapper cannot be null"));
@@ -148,7 +148,7 @@ class AbstractAmazonSqsConsumerTest {
   @Test
   void testConstructorThrowsNpeWhenExecutorServiceIsNull() {
     final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-      new TestableAmazonSnsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, null, publishDecorator)
+      new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, null, publishDecorator)
     );
 
     assertThat(thrown.getMessage(), containsString("executorService cannot be null"));
@@ -451,7 +451,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.isFifo()).thenReturn(true);
 
     context(consumer -> {
-      final String payloadAtThreshold = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold());
+      final String payloadAtThreshold = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold());
       topicRequests.put(buildRequestEntry(payloadAtThreshold));
 
       await()
@@ -467,7 +467,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.isFifo()).thenReturn(true);
 
     context(consumer -> {
-      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 1);
+      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold() + 1);
       topicRequests.put(buildRequestEntry(oversizedPayload));
 
       await()
@@ -484,7 +484,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.getMaxBatchSize()).thenReturn(10);
 
     context(consumer -> {
-      final int halfThreshold = TestableAmazonSnsConsumer.batchSizeBytesThreshold() / 2;
+      final int halfThreshold = TestableAmazonSqsConsumer.batchSizeBytesThreshold() / 2;
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
       topicRequests.put(buildRequestEntry("small-overflow"));
@@ -503,7 +503,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.getMaxBatchSize()).thenReturn(10);
 
     context(consumer -> {
-      final int fullThreshold = TestableAmazonSnsConsumer.batchSizeBytesThreshold();
+      final int fullThreshold = TestableAmazonSqsConsumer.batchSizeBytesThreshold();
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(fullThreshold)));
       topicRequests.put(buildRequestEntry("second-entry"));
 
@@ -539,7 +539,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.getMaxBatchSize()).thenReturn(10);
 
     context(consumer -> {
-      final int chunkSize = (TestableAmazonSnsConsumer.batchSizeBytesThreshold() / 3) + 1;
+      final int chunkSize = (TestableAmazonSqsConsumer.batchSizeBytesThreshold() / 3) + 1;
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
       topicRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
@@ -557,7 +557,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.isFifo()).thenReturn(true);
 
     final String poisonId = "poison-id";
-    final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
+    final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold() + 100);
     final RequestEntry<String> poisonEntry = RequestEntry.<String>builder()
       .withId(poisonId)
       .withValue(oversizedPayload)
@@ -589,7 +589,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.isFifo()).thenReturn(true);
 
     context(consumer -> {
-      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSnsConsumer.batchSizeBytesThreshold() + 100);
+      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold() + 100);
       topicRequests.put(buildRequestEntry(oversizedPayload));
 
       await()
@@ -608,19 +608,19 @@ class AbstractAmazonSqsConsumerTest {
     return StringUtils.repeat('x', Math.max(0, targetBytes));
   }
 
-  private void context(final TryConsumer<TestableAmazonSnsConsumer> consumer) throws Exception {
-    try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
-      consumer.accept(snsConsumer);
+  private void context(final TryConsumer<TestableAmazonSqsConsumer> consumer) throws Exception {
+    try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, publishDecorator)) {
+      consumer.accept(sqsConsumer);
     }
   }
 
-  private void context(final UnaryOperator<Object> trackingDecorator, final TryConsumer<TestableAmazonSnsConsumer> consumer) throws Exception {
-    try (final TestableAmazonSnsConsumer snsConsumer = new TestableAmazonSnsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, trackingDecorator)) {
-      consumer.accept(snsConsumer);
+  private void context(final UnaryOperator<Object> trackingDecorator, final TryConsumer<TestableAmazonSqsConsumer> consumer) throws Exception {
+    try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, topicRequests, executorService, trackingDecorator)) {
+      consumer.accept(sqsConsumer);
     }
   }
 
-  static class TestableAmazonSnsConsumer extends AbstractAmazonSqsConsumer<Object, Object, Object, String> implements AutoCloseable {
+  static class TestableAmazonSqsConsumer extends AbstractAmazonSqsConsumer<Object, Object, Object, String> implements AutoCloseable {
 
     private static final int BATCH_SIZE_BYTES_THRESHOLD = 1024 * 1024;
 
@@ -631,7 +631,7 @@ class AbstractAmazonSqsConsumerTest {
     private boolean throwOnPublish = false;
     private final RuntimeException publishException = new RuntimeException("publish failed");
     private final List<Integer> publishedBatchSizes = Collections.synchronizedList(new LinkedList<>());
-    TestableAmazonSnsConsumer(
+    TestableAmazonSqsConsumer(
         final Object amazonSqsClient,
         final QueueProperty queueProperty,
         final ObjectMapper objectMapper,
