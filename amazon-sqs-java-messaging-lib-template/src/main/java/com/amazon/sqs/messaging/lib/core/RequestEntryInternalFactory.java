@@ -73,10 +73,10 @@ final class RequestEntryInternalFactory {
   }
 
   /**
-   * Converts a request entry's value to a byte array. Strings are converted using UTF-8,
-   * and other types are serialized using Jackson JSON.
+   * Converts the payload of a request entry to a byte array. Strings are converted
+   * using UTF-8; other types are serialized via Jackson ObjectMapper.
    *
-   * @param requestEntry the request entry
+   * @param requestEntry the request entry whose payload to convert
    * @return the serialized payload bytes
    * @throws PoisonRequestEntryException
    */
@@ -91,10 +91,10 @@ final class RequestEntryInternalFactory {
   }
 
   /**
-   * Calculates the total size of message attributes for a request entry.
+   * Computes the total size of message attributes for a request entry.
    *
    * @param requestEntry the request entry
-   * @return the combined size of attribute keys and values
+   * @return the combined size (in bytes) of all attribute keys and values
    */
   public Integer messageAttributesSize(final RequestEntry<?> requestEntry) {
     final Map<String, Integer> messageAttributes = MessageAttributesInternal.INSTANCE.messageAttributes(requestEntry.getMessageHeaders());
@@ -110,7 +110,9 @@ final class RequestEntryInternalFactory {
   }
 
   /**
-   * Internal representation of a request entry with a serialized binary payload.
+   * Internal representation of a batched request entry with a serialized payload.
+   *
+   * @param <E> the payload type (unused here, payload is serialized to bytes)
    */
   @Getter
   @ToString

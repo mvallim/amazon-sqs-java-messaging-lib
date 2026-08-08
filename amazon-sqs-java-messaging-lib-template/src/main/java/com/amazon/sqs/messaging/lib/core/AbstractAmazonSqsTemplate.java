@@ -74,8 +74,7 @@ abstract class AbstractAmazonSqsTemplate<R, O, E> {
    * Shuts down both the producer and consumer, releasing all resources.
    */
   public void shutdown() {
-    amazonSqsProducer.shutdown();
-    amazonSqsConsumer.shutdown();
+    amazonSqsProducer.shutdown(amazonSqsConsumer::shutdown);
   }
 
   /**
@@ -235,3 +234,4 @@ abstract class AbstractAmazonSqsTemplate<R, O, E> {
   }
 
 }
+// @formatter:on
