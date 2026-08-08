@@ -28,7 +28,7 @@ com.amazon.sqs.messaging.lib
 ## Dependencies
 
 ```text
-com.github.mvallim:amazon-sqs-java-messaging-lib-template:1.3.2
+com.github.mvallim:amazon-sqs-java-messaging-lib-template:1.4.0
 com.amazonaws:aws-java-sdk-sqs:1.12.661
 ```
 
