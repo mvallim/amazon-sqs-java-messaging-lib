@@ -36,8 +36,13 @@ import lombok.SneakyThrows;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ThreadFactoryProvider {
 
+  /** Class logger. */
   private static final Logger LOGGER = LoggerFactory.getLogger(ThreadFactoryProvider.class);
 
+  /**
+   * Cached supplier of the appropriate thread factory for the runtime Java
+   * version.
+   */
   private static Supplier<ThreadFactory> supplierThreadFactory;
 
   static {
@@ -53,7 +58,7 @@ public final class ThreadFactoryProvider {
   /**
    * Returns a {@link ThreadFactory} appropriate for the current Java version.
    *
-   * @return a virtual thread factory (Java 21+) or a default thread factory
+   * @return a virtual thread factory (Java 21+) or the default thread factory
    */
   public static ThreadFactory getThreadFactory() {
     return ThreadFactoryProvider.supplierThreadFactory.get();
@@ -84,7 +89,7 @@ public final class ThreadFactoryProvider {
   }
 
   /**
-   * Parses the Java runtime major version.
+   * Parses the Java runtime version.
    *
    * @return the major Java version number
    */
@@ -97,7 +102,7 @@ public final class ThreadFactoryProvider {
 
     final int dotPos = version.indexOf('.');
     final int dashPos = version.indexOf('-');
-    final int endIndex = dotPos > -1 ? dotPos : dashPos > -1 ? dashPos : version.length();
+    final int endIndex = dotPos > -1 ? dotPos : dashPos > -1 ? dashPos : 1;
 
     return Integer.parseInt(version.substring(0, endIndex));
   }

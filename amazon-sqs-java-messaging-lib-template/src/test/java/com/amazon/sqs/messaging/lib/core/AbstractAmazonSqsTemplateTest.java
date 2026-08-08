@@ -22,6 +22,8 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.UnaryOperator;
 
@@ -64,15 +67,18 @@ class AbstractAmazonSqsTemplateTest {
 
   private AbstractAmazonSqsTemplate<Object, Object, String> template;
 
+  private ExecutorService callbackExecutor;
+
   @BeforeEach
   void setUp() {
+    callbackExecutor = Executors.newSingleThreadExecutor();
     template = new AbstractAmazonSqsTemplate<Object, Object, String>(producerMock, consumerMock) { };
   }
 
   @Test
   void testSendDelegatesToProducer() {
     final RequestEntry<String> requestEntry = RequestEntry.<String>builder().build();
-    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> expectedFuture = new ListenableFutureImpl();
+    final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> expectedFuture = new ListenableFutureImpl(callbackExecutor);
     when(producerMock.send(requestEntry)).thenReturn(expectedFuture);
 
     final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> result = template.send(requestEntry);
@@ -84,12 +90,20 @@ class AbstractAmazonSqsTemplateTest {
   @Test
   void testShutdownDelegatesToProducer() {
     template.shutdown();
-    verify(producerMock).shutdown();
+
+    verify(producerMock).shutdown(any());
   }
 
   @Test
   void testShutdownDelegatesToConsumer() {
+    doAnswer(invocation -> {
+      final Runnable argument = invocation.getArgument(0, Runnable.class);
+      argument.run();
+      return null;
+    }).when(producerMock).shutdown(any());
+
     template.shutdown();
+
     verify(consumerMock).shutdown();
   }
 

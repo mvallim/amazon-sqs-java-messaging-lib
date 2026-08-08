@@ -23,11 +23,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
@@ -45,7 +48,6 @@ import com.amazon.sqs.messaging.lib.model.QueueProperty;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
@@ -139,9 +141,9 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
   protected abstract BiFunction<String, List<RequestEntryInternal>, R> supplierPublishRequest();
 
   /**
-   * Executes the publish operation and handles the response or error.
+   * Performs the actual publish call and dispatches the response or error.
    *
-   * @param publishBatchRequest the batch publish request to send
+   * @param publishBatchRequest the batch request to publish
    */
   private void doPublish(final R publishBatchRequest) {
     try {
@@ -152,10 +154,9 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
   }
 
   /**
-   * Publishes a batch of messages, running synchronously for FIFO queues or
-   * asynchronously for standard queues.
+   * Publishes a batch either synchronously (FIFO) or asynchronously (standard).
    *
-   * @param publishBatchRequest the batch publish request to send
+   * @param publishBatchRequest the batch request to publish
    */
   private void publishBatch(final R publishBatchRequest) {
     try {
@@ -203,8 +204,8 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
   }
 
   /**
-   * Shuts down the consumer, waiting for all pending requests to complete
-   * before terminating the scheduled and executor services.
+   * Shuts down the consumer, waiting up to 60 seconds for both the scheduled and
+   * worker executor services to terminate.
    */
   @Override
   public void shutdown() {
@@ -233,11 +234,11 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
   }
 
   /**
-   * Checks if the oldest pending request has waited longer than the batching window.
+   * Checks whether the oldest request has waited longer than the batching window.
    *
-   * @param requests           the blocking queue of requests
+   * @param requests          the request queue
    * @param batchingWindowInMs the batching window in milliseconds
-   * @return true if the oldest request has exceeded the batching window
+   * @return true if the oldest request has exceeded the window
    */
   private boolean requestsWaitedFor(final BlockingQueue<RequestEntry<E>> requests, final long batchingWindowInMs) {
     return Optional.ofNullable(requests.peek()).map(oldestPendingRequest -> {
@@ -247,22 +248,22 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
   }
 
   /**
-   * Checks if the number of queued requests exceeds the maximum batch size.
+   * Checks whether the queue has exceeded the maximum batch size.
    *
-   * @param requests the blocking queue of requests
-   * @return true if the queue size exceeds the maximum batch size
+   * @param requests the request queue
+   * @return true if the queue size exceeds the configured max batch size
    */
   private boolean maxBatchSizeReached(final BlockingQueue<RequestEntry<E>> requests) {
     return requests.size() > queueProperty.getMaxBatchSize();
   }
 
   /**
-   * Determines whether a request can be added to the current batch based on size and count limits.
+   * Checks whether a request can be added to the current batch based on size and count limits.
    *
    * @param batchSizeBytes     the current batch size in bytes
    * @param requestEntriesSize the current number of entries in the batch
-   * @param request            the request to evaluate
-   * @return true if the request can be added to the batch
+   * @param request            the next request to consider adding
+   * @return true if the request can be added
    */
   private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
     return (batchSizeBytes < BATCH_SIZE_BYTES_THRESHOLD)
@@ -274,22 +275,21 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    * Checks if the batch size is within the allowed payload threshold.
    *
    * @param batchSizeBytes the current batch size in bytes
-   * @return true if the batch size is within the threshold
+   * @return true if the batch is still within the size limit
    */
   private boolean canAddPayload(final int batchSizeBytes) {
     return batchSizeBytes <= BATCH_SIZE_BYTES_THRESHOLD;
   }
 
   /**
-   * Drains requests from the queue and groups them into a batch publish request,
-   * respecting size limits and handling oversized messages.
+   * Drains requests from the queue and assembles them into a publish batch request.
+   * Returns empty if no requests are available.
    *
-   * @param requests the blocking queue of requests
-   * @return an optional batch publish request, empty if no requests could be batched
+   * @param requests the request queue
+   * @return an optional containing the assembled batch request, or empty
    * @throws InterruptedException
-   * @throws JsonProcessingException
    */
-  private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) throws InterruptedException, JsonProcessingException {
+  private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) throws InterruptedException {
     final AtomicInteger batchSizeBytes = new AtomicInteger(0);
     final List<RequestEntryInternal> requestEntries = new ArrayList<>(queueProperty.getMaxBatchSize());
 
@@ -345,9 +345,48 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
         try {
           TimeUnit.NANOSECONDS.sleep(Duration.ofMillis(queueProperty.getLinger()).toNanos());
         } catch (final InterruptedException e) {
-          Thread.currentThread().interrupt();
           LOGGER.warn("await() interrupted");
+          Thread.currentThread().interrupt();
         }
+      }
+    });
+  }
+
+  /**
+   * Returns a {@link CompletableFuture} that completes once all pending requests have
+   * been processed (i.e., both the pending requests map and the topic requests queue are empty),
+   * bounded by the given timeout.
+   * <p>
+   * Internally reuses {@link #await()} and waits on it via {@link CompletableFuture#get(long, TimeUnit)}
+   * on a separate thread, so the calling thread is never blocked directly. If the timeout elapses
+   * before all pending requests are drained, the returned future completes exceptionally with a
+   * {@link CompletionException} wrapping a {@link java.util.concurrent.TimeoutException}.
+   * <p>
+   * Note that the underlying drain triggered by {@link #await()} is not cancelled when the timeout
+   * elapses; it keeps running in the background until the pending requests and topic requests queue
+   * are actually empty.
+   *
+   * @param timeout the maximum time to wait for all pending requests to be processed
+   * @return a future that completes when all requests are drained, or completes exceptionally
+   *         if {@code timeout} elapses first
+   * @throws NullPointerException if {@code timeout} is {@code null}
+   */
+  @Override
+  public CompletableFuture<Void> await(final Duration timeout) {
+    Objects.requireNonNull(timeout, "timeout cannot be null");
+
+    final CompletableFuture<Void> pending = await();
+
+    return CompletableFuture.runAsync(() -> {
+      try {
+        pending.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
+      } catch (final InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        throw new CompletionException(ex);
+      } catch (final ExecutionException ex) {
+        throw new CompletionException(ex.getCause());
+      } catch (final TimeoutException ex) {
+        throw new CompletionException(ex);
       }
     });
   }
