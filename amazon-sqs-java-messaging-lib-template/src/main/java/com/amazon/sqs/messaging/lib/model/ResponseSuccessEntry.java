@@ -32,10 +32,19 @@ public class ResponseSuccessEntry implements Serializable {
 
   private static final long serialVersionUID = 4864967607600926557L;
 
+  /**
+   * The unique identifier of the original request.
+   */
   private final String id;
 
+  /**
+   * The identifier assigned to the message by Amazon SQS.
+   */
   private final String messageId;
 
+  /**
+   * The sequence number assigned by Amazon SQS (FIFO queues only).
+   */
   private final String sequenceNumber;
 
 }

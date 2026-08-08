@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -40,8 +41,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.localstack.LocalStackContainer;
-import org.testcontainers.containers.localstack.LocalStackContainer.Service;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -53,6 +54,7 @@ import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 import com.github.dockerjava.api.model.PortBinding;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.SneakyThrows;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -70,12 +72,10 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 class AmazonSqsTemplateIntegrationTest {
 
   @Container
-  static LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:3.4.0"))
-    .withEnv("LOCALSTACK_HOST", "localhost")
-    .withEnv("SQS_ENDPOINT_STRATEGY", "off")
+  static GenericContainer<?> ministack = new GenericContainer<>(DockerImageName.parse("ministackorg/ministack:1.4.0"))
     .withReuse(true)
     .withExposedPorts(4566)
-    .withServices(Service.SQS)
+    .waitingFor(Wait.forLogMessage(".*Running on.*", 1))
     .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
       .withPortBindings(PortBinding.parse("4566:4566"))
     );
@@ -89,9 +89,9 @@ class AmazonSqsTemplateIntegrationTest {
   @BeforeAll
   static void setup() {
     sqsClient = SqsClient.builder()
-      .endpointOverride(localstack.getEndpoint())
-      .region(Region.of(localstack.getRegion()))
-      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
+      .endpointOverride(URI.create("http://localhost:4566"))
+      .region(Region.of("sa-east-1"))
+      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("fakeAccessKey", "fakeSecretKey")))
       .build();
 
     standardQueueUrl = sqsClient.createQueue(request -> request.queueName("it-standard-queue")).queueUrl();
@@ -111,8 +111,8 @@ class AmazonSqsTemplateIntegrationTest {
       sqsClient.close();
     }
 
-    if (Objects.nonNull(localstack)) {
-      localstack.close();
+    if (Objects.nonNull(ministack)) {
+      ministack.close();
     }
   }
 
@@ -137,7 +137,10 @@ class AmazonSqsTemplateIntegrationTest {
       .queueUrl(queueUrl)
       .build();
 
-    return new AmazonSqsTemplate<>(sqsClient, queueProperty, new RingBufferBlockingQueue<>(1024));
+    return AmazonSqsTemplate.builder(sqsClient, queueProperty)
+      .meterRegistry(new SimpleMeterRegistry())
+      .queueRequests(new RingBufferBlockingQueue<>(1024))
+      .build();
   }
 
   private void purgeQueue(final String queueUrl) {
@@ -170,9 +173,9 @@ class AmazonSqsTemplateIntegrationTest {
   void testSendSingleMessage() {
     final String messageBody = "hello-sqs-" + UUID.randomUUID();
 
-    countDownLatch(1, countDownLatch -> {
+    final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 100L, 10, 5);
 
-      final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 100L, 10, 5);
+    countDownLatch(1, countDownLatch -> {
 
       final String id = UUID.randomUUID().toString();
 
@@ -180,8 +183,6 @@ class AmazonSqsTemplateIntegrationTest {
         .withId(id)
         .withValue(messageBody)
         .build());
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -198,16 +199,18 @@ class AmazonSqsTemplateIntegrationTest {
     final Message message = result.messages().get(0);
     assertThat(message.body(), is(messageBody));
     assertThat(message.messageAttributes().keySet(), hasSize(0));
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendMultipleMessages() {
     final int messageCount = 500;
 
+    final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 50L, 10, 10);
+
     countDownLatch(messageCount, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
-
-      final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 50L, 10, 10);
 
       IntStream.range(0, messageCount).forEach(i -> {
         futures.add(
@@ -217,8 +220,6 @@ class AmazonSqsTemplateIntegrationTest {
             .build())
           );
       });
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -240,16 +241,18 @@ class AmazonSqsTemplateIntegrationTest {
       assertThat(message.body(), containsString("msg-"));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendMessagesExceedingBatchSize() {
     final int messageCount = 25;
 
+    final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 50L, 10, 10);
+
     countDownLatch(messageCount, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
-
-      final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 50L, 10, 10);
 
       IntStream.range(0, messageCount).forEach(i -> {
         futures.add(template.send(RequestEntry.builder()
@@ -257,8 +260,6 @@ class AmazonSqsTemplateIntegrationTest {
           .withValue("batch-test-" + i)
           .build()));
       });
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -280,16 +281,18 @@ class AmazonSqsTemplateIntegrationTest {
       assertThat(message.body(), containsString("batch-test-"));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendMessagesWithLinger() {
     final int messageCount = 20;
 
+    final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 200L, 10, 5);
+
     countDownLatch(messageCount, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
-
-      final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 200L, 10, 5);
 
       IntStream.range(0, messageCount).forEach(i -> {
         futures.add(template.send(RequestEntry.builder()
@@ -297,8 +300,6 @@ class AmazonSqsTemplateIntegrationTest {
           .withValue("linger-test-" + i)
           .build()));
       });
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -320,26 +321,26 @@ class AmazonSqsTemplateIntegrationTest {
       assertThat(message.body(), containsString("linger-test-"));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendMessageWithMessageAttributes() {
     final String messageBody = "attr-test-" + UUID.randomUUID();
 
+    final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 100L, 10, 5);
+
     countDownLatch(1, countDownLatch -> {
       final Map<String, Object> messageHeaders = new HashMap<>();
       messageHeaders.put("string-attr", "hello");
       messageHeaders.put("number-attr", 42);
-
-      final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 100L, 10, 5);
 
       final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
         .withId(UUID.randomUUID().toString())
         .withValue(messageBody)
         .withMessageHeaders(messageHeaders)
         .build());
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -362,21 +363,21 @@ class AmazonSqsTemplateIntegrationTest {
       assertThat(message.messageAttributes().get("string-attr").stringValue(), is("hello"));
       assertThat(message.messageAttributes().get("number-attr").stringValue(), is("42"));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendLargeMessage() {
     final String largeBody = RandomStringUtils.secure().nextAlphabetic(262_144);
 
-    countDownLatch(1, countDownLatch -> {
-      final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 200L, 5, 5);
+    final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 200L, 5, 5);
 
+    countDownLatch(1, countDownLatch -> {
       final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
         .withId(UUID.randomUUID().toString())
         .withValue(largeBody)
         .build());
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -398,10 +399,15 @@ class AmazonSqsTemplateIntegrationTest {
       assertThat(message.body(), is(largeBody));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testSendMessageExceedingMaxSize() {
+
+    final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 100L, 10, 5);
+
     countDownLatch(1, countDownLatch -> {
       final String oversizedBody = RandomStringUtils.secure().nextAlphabetic((1024 * 1024) + 1);
 
@@ -410,11 +416,7 @@ class AmazonSqsTemplateIntegrationTest {
         .withValue(oversizedBody)
         .build();
 
-      final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 100L, 10, 5);
-
       final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(entry);
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(null, failureResult -> {
         assertThat(failureResult.getCode(), is("000"));
@@ -428,15 +430,17 @@ class AmazonSqsTemplateIntegrationTest {
     final List<Message> messages = receiveMessage(standardQueueUrl, 10, 5).messages();
 
     assertThat(messages, hasSize(0));
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testShutdownDrainsPendingMessages() {
     final int messageCount = 5;
 
-    countDownLatch(messageCount, countDownLatch -> {
-      final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 10_000L, 10, 5);
+    final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 10_000L, 10, 5);
 
+    countDownLatch(messageCount, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
 
       IntStream.range(0, messageCount).forEach(i -> {
@@ -445,8 +449,6 @@ class AmazonSqsTemplateIntegrationTest {
           .withValue("drain-test-" + i)
           .build()));
       });
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -468,19 +470,19 @@ class AmazonSqsTemplateIntegrationTest {
       assertThat(message.body(), containsString("drain-test-"));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
   void testTemplateLifecycle() {
-    countDownLatch(1, countDownLatch -> {
-      final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 100L, 10, 5);
+    final AmazonSqsTemplate<Object> template = createTemplate(standardQueueUrl, false, 100L, 10, 5);
 
+    countDownLatch(1, countDownLatch -> {
       final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
         .withId(UUID.randomUUID().toString())
         .withValue("lifecycle-" + UUID.randomUUID())
         .build());
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -502,6 +504,8 @@ class AmazonSqsTemplateIntegrationTest {
       assertThat(message.body(), containsString("lifecycle-"));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
@@ -510,16 +514,14 @@ class AmazonSqsTemplateIntegrationTest {
     final String id = UUID.randomUUID().toString();
     final String groupId = id;
 
-    countDownLatch(1, countDownLatch -> {
-      final AmazonSqsTemplate<Object> template = createTemplate(fifoQueueUrl, true, 100L, 10, 1);
+    final AmazonSqsTemplate<Object> template = createTemplate(fifoQueueUrl, true, 100L, 10, 1);
 
+    countDownLatch(1, countDownLatch -> {
       final ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> future = template.send(RequestEntry.builder()
         .withId(id)
         .withValue(messageBody)
         .withGroupId(groupId)
         .build());
-
-      template.await().thenRun(template::shutdown).join();
 
       future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -543,6 +545,8 @@ class AmazonSqsTemplateIntegrationTest {
       assertThat(message.attributes().get(MessageSystemAttributeName.MESSAGE_GROUP_ID), is(groupId));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
@@ -550,10 +554,10 @@ class AmazonSqsTemplateIntegrationTest {
     final int messageCount = 100;
     final String groupId = UUID.randomUUID().toString();
 
+    final AmazonSqsTemplate<Object> template = createTemplate(fifoQueueUrl, true, 50L, 10, 1);
+
     countDownLatch(1, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
-
-      final AmazonSqsTemplate<Object> template = createTemplate(fifoQueueUrl, true, 50L, 10, 1);
 
       IntStream.range(0, messageCount).forEach(i -> {
         futures.add(template.send(RequestEntry.builder()
@@ -562,8 +566,6 @@ class AmazonSqsTemplateIntegrationTest {
           .withGroupId(groupId)
           .build()));
       });
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -587,6 +589,8 @@ class AmazonSqsTemplateIntegrationTest {
       assertThat(message.attributes().get(MessageSystemAttributeName.MESSAGE_GROUP_ID), is(groupId));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
   @Test
@@ -595,10 +599,10 @@ class AmazonSqsTemplateIntegrationTest {
     final String groupId = UUID.randomUUID().toString();
     final String messageBody = "dedup-test-" + UUID.randomUUID();
 
+    final AmazonSqsTemplate<Object> template = createTemplate(fifoQueueUrl, true, 100L, 10, 1);
+
     countDownLatch(1, countDownLatch -> {
       final List<ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> futures = new ArrayList<>();
-
-      final AmazonSqsTemplate<Object> template = createTemplate(fifoQueueUrl, true, 100L, 10, 1);
 
       futures.add(template.send(RequestEntry.builder()
         .withId(UUID.randomUUID().toString())
@@ -613,8 +617,6 @@ class AmazonSqsTemplateIntegrationTest {
         .withGroupId(groupId)
         .withDeduplicationId(deduplicationId)
         .build()));
-
-      template.await().thenRun(template::shutdown).join();
 
       futures.forEach(future -> future.addCallback(result -> {
         assertThat(result, notNullValue());
@@ -639,6 +641,8 @@ class AmazonSqsTemplateIntegrationTest {
       assertThat(message.attributes().get(MessageSystemAttributeName.MESSAGE_DEDUPLICATION_ID), is(deduplicationId));
       assertThat(message.messageAttributes().keySet(), hasSize(0));
     });
+
+    template.await().thenRun(template::shutdown).join();
   }
 
 }
