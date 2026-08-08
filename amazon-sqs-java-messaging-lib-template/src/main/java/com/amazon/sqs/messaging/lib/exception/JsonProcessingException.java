@@ -16,10 +16,20 @@
 
 package com.amazon.sqs.messaging.lib.exception;
 
+/**
+ * Exception thrown when a request entry payload fails to serialize to JSON via
+ * the configured Jackson {@code ObjectMapper}.
+ */
 public class JsonProcessingException extends PoisonRequestEntryException {
 
   private static final long serialVersionUID = 6321611271238725106L;
 
+  /**
+   * Creates a new exception with the given message and cause.
+   *
+   * @param string    the detail message
+   * @param throwable the underlying serialization exception
+   */
   JsonProcessingException(final String string, final Throwable throwable) {
     super(string, throwable);
   }

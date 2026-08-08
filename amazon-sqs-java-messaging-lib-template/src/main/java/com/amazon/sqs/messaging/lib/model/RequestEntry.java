@@ -39,19 +39,37 @@ import lombok.ToString;
 @Builder(setterPrefix = "with")
 public class RequestEntry<T> {
 
+  /**
+   * The timestamp (in nanoseconds) when the request entry was created.
+   */
   @Builder.Default
   private final long createTime = System.nanoTime();
 
+  /**
+   * The unique identifier of the request.
+   */
   @Builder.Default
   private final String id = UUID.randomUUID().toString();
 
+  /**
+   * The message payload.
+   */
   private T value;
 
+  /**
+   * The message headers to be sent as SQS message attributes.
+   */
   @Builder.Default
   private final Map<String, Object> messageHeaders = Collections.emptyMap();
 
+  /**
+   * The message group ID for FIFO queues.
+   */
   private String groupId;
 
+  /**
+   * The message deduplication ID for FIFO queues.
+   */
   private String deduplicationId;
 
 }

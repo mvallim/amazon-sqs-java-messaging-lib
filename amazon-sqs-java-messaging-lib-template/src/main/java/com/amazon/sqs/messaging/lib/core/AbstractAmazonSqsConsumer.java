@@ -287,7 +287,8 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    *
    * @param requests the request queue
    * @return an optional containing the assembled batch request, or empty
-   * @throws InterruptedException
+   * @throws InterruptedException if the calling thread is interrupted while waiting
+   *                              for the queue
    */
   private Optional<R> createBatch(final BlockingQueue<RequestEntry<E>> requests) throws InterruptedException {
     final AtomicInteger batchSizeBytes = new AtomicInteger(0);
