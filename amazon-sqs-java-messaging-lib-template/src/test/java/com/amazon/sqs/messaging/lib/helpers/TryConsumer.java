@@ -20,4 +20,5 @@ package com.amazon.sqs.messaging.lib.helpers;
 public interface TryConsumer<T> {
 
   void accept(T t) throws Exception;
+
 }

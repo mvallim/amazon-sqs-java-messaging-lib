@@ -22,15 +22,23 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
@@ -38,6 +46,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
@@ -49,7 +58,7 @@ import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 class AbstractAmazonSqsProducerTest {
 
   @Mock
-  private BlockingQueue<RequestEntry<String>> topicRequests;
+  private BlockingQueue<RequestEntry<String>> queueRequests;
 
   private ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
@@ -58,7 +67,7 @@ class AbstractAmazonSqsProducerTest {
   @BeforeEach
   void setUp() {
     pendingRequests = new ConcurrentHashMap<>();
-    producer = new AbstractAmazonSqsProducer<String>(pendingRequests, topicRequests) { };
+    producer = new AbstractAmazonSqsProducer<String>(pendingRequests, queueRequests) { };
   }
 
   @AfterEach
@@ -119,12 +128,12 @@ class AbstractAmazonSqsProducerTest {
   }
 
   @Test
-  void testSendEnqueuesEntryInTopicRequests() throws InterruptedException {
+  void testSendEnqueuesEntryInQueueRequests() throws InterruptedException {
     final RequestEntry<String> entry = requestEntry();
 
     producer.send(entry);
 
-    verify(topicRequests).put(entry);
+    verify(queueRequests).put(entry);
   }
 
   @Test
@@ -153,23 +162,44 @@ class AbstractAmazonSqsProducerTest {
   }
 
   @Test
-  void testSendMultipleEntriesEnqueuesAllInTopicRequests() throws InterruptedException {
+  void testSendMultipleEntriesEnqueuesAllInQueueRequests() throws InterruptedException {
     final RequestEntry<String> entry1 = requestEntry();
     final RequestEntry<String> entry2 = requestEntry();
 
     producer.send(entry1);
     producer.send(entry2);
 
-    verify(topicRequests).put(entry1);
-    verify(topicRequests).put(entry2);
+    verify(queueRequests).put(entry1);
+    verify(queueRequests).put(entry2);
   }
 
   @Test
   void testSendPropagatesInterruptedExceptionFromQueue() throws InterruptedException {
     final RequestEntry<String> entry = requestEntry();
-    doThrow(InterruptedException.class).when(topicRequests).put(any());
+    doThrow(InterruptedException.class).when(queueRequests).put(any());
 
     assertThrows(InterruptedException.class, () -> producer.send(entry));
+  }
+
+  @Test
+  void testShutdownAwaitTermination() throws InterruptedException {
+    try (final MockedStatic<Executors> mockedStatic = mockStatic(Executors.class)) {
+
+      final ExecutorService callbackExecutor = mock();
+
+      mockedStatic.when(() -> Executors.newCachedThreadPool(any())).thenReturn(callbackExecutor);
+
+      final AbstractAmazonSqsProducer<String> abstractAmazonSqsProducer = new AbstractAmazonSqsProducer<String>(new ConcurrentHashMap<>(), new LinkedBlockingDeque<>()) { };
+
+      when(callbackExecutor.shutdownNow()).thenReturn(Collections.singletonList(mock()));
+      when(callbackExecutor.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
+
+      abstractAmazonSqsProducer.shutdown(() -> {});
+
+      verify(callbackExecutor).shutdown();
+      verify(callbackExecutor).awaitTermination(60, TimeUnit.SECONDS);
+      verify(callbackExecutor).shutdownNow();
+    }
   }
 
   private RequestEntry<String> requestEntry() {

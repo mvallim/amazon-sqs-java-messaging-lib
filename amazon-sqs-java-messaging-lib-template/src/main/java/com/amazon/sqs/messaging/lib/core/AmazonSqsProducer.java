@@ -30,7 +30,7 @@ import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 public interface AmazonSqsProducer<E> {
 
   /**
-   * Sends a request entry for asynchronous publishing to an SQS topic.
+   * Sends a request entry for asynchronous publishing to an SQS queue.
    *
    * @param requestEntry the request entry containing the message payload and
    *                     metadata
