@@ -16,6 +16,7 @@
 
 package com.amazon.sqs.messaging.lib.core;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -88,6 +89,20 @@ abstract class AbstractAmazonSqsTemplate<R, O, E> {
   }
 
   /**
+   * Returns a future that completes once all pending requests are drained and processed,
+   * bounded by the given timeout.
+   *
+   * @param timeout the maximum time to wait for all pending requests to be processed
+   * @return a {@link CompletableFuture} that completes when the consumer has finished, or
+   *         completes exceptionally with a {@link java.util.concurrent.TimeoutException}
+   *         if {@code timeout} elapses first
+   * @throws NullPointerException if {@code timeout} is {@code null}
+   */
+  public CompletableFuture<Void> await(final Duration timeout) {
+    return amazonSqsConsumer.await(timeout);
+  }
+
+  /**
    * Creates an {@link AmazonSqsThreadPoolExecutor} configured for the given queue
    * property. For FIFO queues, a single-thread executor is used to preserve
    * message ordering.
@@ -147,7 +162,7 @@ abstract class AbstractAmazonSqsTemplate<R, O, E> {
     private final Function<Builder<C, R, O, E, T>, T> constructor;
 
     /**
-     * Creates a new builder with the required constructor reference, client, and topic.
+     * Creates a new builder with the required constructor reference, client, and queue.
      *
      * @param constructor     the constructor function for creating the template instance
      * @param amazonSqsClient the Amazon SQS client
@@ -171,7 +186,7 @@ abstract class AbstractAmazonSqsTemplate<R, O, E> {
     }
 
     /**
-     * Sets the blocking queue for topic requests.
+     * Sets the blocking queue for queue requests.
      *
      * @param queueRequests the blocking queue for queue requests
      * @return this builder
@@ -215,7 +230,7 @@ abstract class AbstractAmazonSqsTemplate<R, O, E> {
     }
 
     /**
-     * Builds the template instance. If no topic requests queue was provided, a default
+     * Builds the template instance. If no queue requests queue was provided, a default
      * {@link RingBufferBlockingQueue} is created. The queue is then decorated with
      * {@link BlockingQueueMetricsDecorator}.
      *

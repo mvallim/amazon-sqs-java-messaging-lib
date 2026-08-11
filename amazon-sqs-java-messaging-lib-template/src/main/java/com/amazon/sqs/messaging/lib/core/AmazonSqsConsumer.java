@@ -61,7 +61,7 @@ public interface AmazonSqsConsumer<R, O> {
 
   /**
    * Returns a {@link CompletableFuture} that completes once all pending requests
-   * have been processed (i.e., both the pending requests map and the topic
+   * have been processed (i.e., both the pending requests map and the queue
    * requests queue are empty).
    *
    * @return a future that completes when all requests are drained
