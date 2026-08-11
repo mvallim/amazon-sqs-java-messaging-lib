@@ -136,10 +136,10 @@ final class RequestEntryInternalFactory {
     /** Optional subject line for the message. */
     private final String subject;
 
-    /** The message group ID for FIFO topics. */
+    /** The message group ID for FIFO queues. */
     private final String groupId;
 
-    /** The message deduplication ID for FIFO topics. */
+    /** The message deduplication ID for FIFO queues. */
     private final String deduplicationId;
 
     /**

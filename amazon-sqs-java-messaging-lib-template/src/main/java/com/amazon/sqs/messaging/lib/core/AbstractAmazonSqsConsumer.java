@@ -83,7 +83,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
   /** The Amazon SQS client used for publishing batches. */
   protected final C amazonSqsClient;
 
-  /** The topic configuration properties. */
+  /** The queue configuration properties. */
   private final QueueProperty queueProperty;
 
   /** Factory for creating internal request entry representations. */
@@ -92,7 +92,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
   /** Shared map of pending requests keyed by request ID for async completion. */
   protected final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
-  /** The blocking queue that buffers incoming topic requests. */
+  /** The blocking queue that buffers incoming queue requests. */
   private final BlockingQueue<RequestEntry<E>> queueRequests;
 
   /** Optional decorator applied to the publish batch request before sending. */
@@ -355,7 +355,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
 
   /**
    * Returns a {@link CompletableFuture} that completes once all pending requests have
-   * been processed (i.e., both the pending requests map and the topic requests queue are empty),
+   * been processed (i.e., both the pending requests map and the queue requests queue are empty),
    * bounded by the given timeout.
    * <p>
    * Internally reuses {@link #await()} and waits on it via {@link CompletableFuture#get(long, TimeUnit)}
@@ -364,7 +364,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    * {@link CompletionException} wrapping a {@link java.util.concurrent.TimeoutException}.
    * <p>
    * Note that the underlying drain triggered by {@link #await()} is not cancelled when the timeout
-   * elapses; it keeps running in the background until the pending requests and topic requests queue
+   * elapses; it keeps running in the background until the pending requests and queue requests queue
    * are actually empty.
    *
    * @param timeout the maximum time to wait for all pending requests to be processed
