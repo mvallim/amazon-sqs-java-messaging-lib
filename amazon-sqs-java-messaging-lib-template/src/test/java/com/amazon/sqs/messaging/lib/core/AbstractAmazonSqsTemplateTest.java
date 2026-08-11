@@ -28,6 +28,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -119,7 +120,7 @@ class AbstractAmazonSqsTemplateTest {
   }
 
   @Test
-  void testGetExecutorServiceReturnsSingleThreadPoolForFifoTopic() {
+  void testGetExecutorServiceReturnsSingleThreadPoolForFifoQueue() {
     final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(true)
       .queueUrl("http://localhost/000000000000/queue.fifo")
@@ -136,7 +137,20 @@ class AbstractAmazonSqsTemplateTest {
   }
 
   @Test
-  void testGetExecutorServiceReturnsMultiThreadPoolForNonFifoTopic() {
+  void testAwaitWithDurationDelegatesToConsumer() {
+    final CompletableFuture<Void> expectedFuture = CompletableFuture.completedFuture(null);
+    when(consumerMock.await(any(Duration.class))).thenReturn(expectedFuture);
+
+    final Duration ofMillis = Duration.ofMillis(1);
+
+    final CompletableFuture<Void> result = template.await(ofMillis);
+
+    assertThat(result, is(equalTo(expectedFuture)));
+    verify(consumerMock).await(ofMillis);
+  }
+
+  @Test
+  void testGetExecutorServiceReturnsMultiThreadPoolForNonFifoQueue() {
     final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(false)
       .queueUrl("http://localhost/000000000000/queue")
@@ -192,7 +206,7 @@ class AbstractAmazonSqsTemplateTest {
   }
 
   @Test
-  void testBuilderTopicRequestsThrowsWhenNull() {
+  void testBuilderQueueRequestsThrowsWhenNull() {
     final QueueProperty queueProperty = mock(QueueProperty.class);
     final AbstractAmazonSqsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSqsTemplate.Builder<>(b -> null, new Object(), queueProperty);
 
@@ -277,7 +291,7 @@ class AbstractAmazonSqsTemplateTest {
   }
 
   @Test
-  void testBuilderTopicRequestsReturnsSelf() {
+  void testBuilderQueueRequestsReturnsSelf() {
     final QueueProperty queueProperty = mock(QueueProperty.class);
     final AbstractAmazonSqsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSqsTemplate.Builder<>(b -> null, new Object(), queueProperty);
     final BlockingQueue<RequestEntry<String>> queue = new LinkedBlockingDeque<>();
@@ -318,7 +332,7 @@ class AbstractAmazonSqsTemplateTest {
   }
 
   @Test
-  void testBuilderBuildWrapsTopicRequestsWithMetricsDecorator() {
+  void testBuilderBuildWrapsQueueRequestsWithMetricsDecorator() {
     final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(false)
       .queueUrl("http://localhost/000000000000/queue")
@@ -336,7 +350,7 @@ class AbstractAmazonSqsTemplateTest {
   }
 
   @Test
-  void testBuilderBuildCreatesDefaultTopicRequestsWhenNotProvided() {
+  void testBuilderBuildCreatesDefaultQueueRequestsWhenNotProvided() {
     final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(false)
       .queueUrl("http://localhost/000000000000/queue")
@@ -354,7 +368,7 @@ class AbstractAmazonSqsTemplateTest {
   }
 
   @Test
-  void testBuilderBuildUsesProvidedTopicRequests() {
+  void testBuilderBuildUsesProvidedQueueRequests() {
     final QueueProperty queueProperty = QueueProperty.builder()
       .fifo(false)
       .queueUrl("http://localhost/000000000000/queue")
