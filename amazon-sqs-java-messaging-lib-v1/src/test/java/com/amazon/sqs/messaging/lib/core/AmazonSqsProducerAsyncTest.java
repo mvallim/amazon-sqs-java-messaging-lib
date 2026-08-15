@@ -72,7 +72,7 @@ class AmazonSqsProducerAsyncTest {
       .queueUrl("http://localhost/000000000000/queue")
       .build();
 
-    sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty, new RingBufferBlockingQueue<>(1024));
+    sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty).queueRequests(new RingBufferBlockingQueue<>(1024)).build();
   }
 
   @Test
@@ -216,7 +216,7 @@ class AmazonSqsProducerAsyncTest {
         .queueUrl("http://localhost/000000000000/queue")
         .build();
 
-    final AmazonSqsTemplate<Object> sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty);
+    final AmazonSqsTemplate<Object> sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty).build();
 
     when(amazonSQS.sendMessageBatch(any())).thenAnswer(invocation -> {
       while (true) {

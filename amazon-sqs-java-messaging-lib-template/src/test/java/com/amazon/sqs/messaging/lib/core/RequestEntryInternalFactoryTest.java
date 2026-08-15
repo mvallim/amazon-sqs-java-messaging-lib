@@ -34,29 +34,31 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.fory.json.ForyJson;
+import org.apache.fory.json.ForyJsonException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.amazon.sqs.messaging.lib.core.RequestEntryInternalFactory.MessageAttributesInternal;
 import com.amazon.sqs.messaging.lib.core.RequestEntryInternalFactory.RequestEntryInternal;
 import com.amazon.sqs.messaging.lib.exception.PoisonRequestEntryException;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
 @ExtendWith(MockitoExtension.class)
 class RequestEntryInternalFactoryTest {
 
-  @InjectMocks
   private RequestEntryInternalFactory factory;
 
-  @Spy
-  private ObjectMapper objectMapper;
+  private final JsonMapper jsonMapper = JsonMapperFactory.create(ForyJson.builder().build());
+
+  @BeforeEach
+  void before() {
+    factory = RequestEntryInternalFactory.build(jsonMapper);
+  }
 
   private RequestEntry<Object> buildRequestEntry(final Object payload, final Map<String, Object> headers) {
     return RequestEntry.builder()
@@ -247,7 +249,7 @@ class RequestEntryInternalFactoryTest {
       final RequestEntryInternal result = factory.create(entry);
 
       final String decoded = result.getMessage();
-      final Map<?, ?> parsed = objectMapper.readValue(decoded, Map.class);
+      final Map<?, ?> parsed = jsonMapper.fromJson(decoded, Map.class);
       assertThat(parsed.get("key"), equalTo("value"));
     }
 
@@ -285,7 +287,7 @@ class RequestEntryInternalFactoryTest {
       final PoisonRequestEntryException thrown = assertThrows(PoisonRequestEntryException.class,
         () -> factory.create(entry));
 
-      assertThat(thrown.getCause(), is(instanceOf(JsonProcessingException.class)));
+      assertThat(thrown.getCause(), is(instanceOf(ForyJsonException.class)));
     }
   }
 
@@ -319,7 +321,7 @@ class RequestEntryInternalFactoryTest {
 
       final byte[] result = factory.convertPayload(entry);
 
-      final Map<?, ?> parsed = objectMapper.readValue(result, Map.class);
+      final Map<?, ?> parsed = jsonMapper.fromJson(result, Map.class);
       assertThat(parsed.get("a"), equalTo("b"));
     }
 
@@ -330,7 +332,7 @@ class RequestEntryInternalFactoryTest {
 
       final byte[] result = factory.convertPayload(entry);
 
-      final List<?> parsed = objectMapper.readValue(result, List.class);
+      final List<?> parsed = jsonMapper.fromJson(result, List.class);
       assertThat(parsed.size(), equalTo(3));
     }
 
@@ -360,7 +362,7 @@ class RequestEntryInternalFactoryTest {
       final PoisonRequestEntryException thrown = assertThrows(PoisonRequestEntryException.class,
         () -> factory.convertPayload(entry));
 
-      assertThat(thrown.getCause(), is(instanceOf(JsonProcessingException.class)));
+      assertThat(thrown.getCause(), is(instanceOf(ForyJsonException.class)));
     }
   }
 
