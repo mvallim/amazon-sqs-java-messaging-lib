@@ -48,7 +48,6 @@ import com.amazon.sqs.messaging.lib.model.QueueProperty;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
 /**
@@ -106,7 +105,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    *
    * @param amazonSqsClient  the Amazon SQS client
    * @param queueProperty    the queue configuration
-   * @param objectMapper     the Jackson ObjectMapper for payload serialization
+   * @param jsonMapper       the JsonMapper for payload serialization
    * @param pendingRequests  the shared map of pending requests keyed by request ID
    * @param queueRequests    the shared blocking queue for queue requests
    * @param executorService  the executor service for async publishing
@@ -115,7 +114,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
   protected AbstractAmazonSqsConsumer(
       final C amazonSqsClient,
       final QueueProperty queueProperty,
-      final ObjectMapper objectMapper,
+      final JsonMapper jsonMapper,
       final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
       final BlockingQueue<RequestEntry<E>> queueRequests,
       final ExecutorService executorService,
@@ -123,11 +122,11 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
 
     this.queueProperty = Objects.requireNonNull(queueProperty, "queueProperty cannot be null");
     this.amazonSqsClient = Objects.requireNonNull(amazonSqsClient, "amazonSqsClient cannot be null");
-    requestEntryInternalFactory = new RequestEntryInternalFactory(Objects.requireNonNull(objectMapper, "objectMapper cannot be null"));
+    this.executorService = Objects.requireNonNull(executorService, "executorService cannot be null");
+    this.requestEntryInternalFactory = RequestEntryInternalFactory.build(jsonMapper);
     this.pendingRequests = pendingRequests;
     this.queueRequests = queueRequests;
     this.publishDecorator = publishDecorator;
-    this.executorService = Objects.requireNonNull(executorService, "executorService cannot be null");
 
     scheduledExecutorService.scheduleAtFixedRate(this, 0, queueProperty.getLinger(), TimeUnit.MILLISECONDS);
   }

@@ -39,7 +39,6 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.SendMessageBatchResult;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 // @formatter:off
 /**
@@ -60,7 +59,7 @@ class AmazonSqsConsumerImpl<E> extends AbstractAmazonSqsConsumer<AmazonSQS, Send
    *
    * @param amazonSqsClient  the AWS SDK v1 SQS client
    * @param queueProperty    the queue configuration properties
-   * @param objectMapper     the JSON object mapper
+   * @param jsonMapper       the JSON object mapper
    * @param pendingRequests  the map of pending requests
    * @param queueRequests    the blocking queue of incoming requests
    * @param executorService  the executor service for async publishing
@@ -69,12 +68,12 @@ class AmazonSqsConsumerImpl<E> extends AbstractAmazonSqsConsumer<AmazonSQS, Send
   public AmazonSqsConsumerImpl(
     final AmazonSQS amazonSqsClient,
     final QueueProperty queueProperty,
-    final ObjectMapper objectMapper,
+    final JsonMapper jsonMapper,
     final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
     final BlockingQueue<RequestEntry<E>> queueRequests,
     final ExecutorService executorService,
     final UnaryOperator<SendMessageBatchRequest> publishDecorator) {
-    super(amazonSqsClient, queueProperty, objectMapper, pendingRequests, queueRequests, executorService, publishDecorator);
+    super(amazonSqsClient, queueProperty, jsonMapper, pendingRequests, queueRequests, executorService, publishDecorator);
   }
 
   /**

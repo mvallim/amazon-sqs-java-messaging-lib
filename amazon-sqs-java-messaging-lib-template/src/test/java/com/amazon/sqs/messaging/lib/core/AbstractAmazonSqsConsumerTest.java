@@ -96,7 +96,7 @@ class AbstractAmazonSqsConsumerTest {
   @Mock(strictness = Strictness.LENIENT)
   private ListenableFuture<ResponseSuccessEntry, ResponseFailEntry> listenableFutureImpl;
 
-  private ObjectMapper objectMapper;
+  private JsonMapper jsonMapper;
 
   private ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests;
 
@@ -106,7 +106,7 @@ class AbstractAmazonSqsConsumerTest {
 
   @BeforeEach
   void setUp() {
-    objectMapper = new ObjectMapper();
+    jsonMapper = JsonMapperFactory.create(new ObjectMapper());
     pendingRequests = new ConcurrentHashMap<>();
     queueRequests = new RingBufferBlockingQueue<>();
     publishDecorator = UnaryOperator.identity();
@@ -135,7 +135,7 @@ class AbstractAmazonSqsConsumerTest {
     @Test
     void testConstructorThrowsNpeWhenQueuePropertyIsNull() {
       final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-        new TestableAmazonSqsConsumer(amazonSqsClient, null, objectMapper, pendingRequests, queueRequests, executorService, publishDecorator)
+        new TestableAmazonSqsConsumer(amazonSqsClient, null, jsonMapper, pendingRequests, queueRequests, executorService, publishDecorator)
       );
 
       assertThat(thrown.getMessage(), containsString("queueProperty cannot be null"));
@@ -144,7 +144,7 @@ class AbstractAmazonSqsConsumerTest {
     @Test
     void testConstructorThrowsNpeWhenAmazonSqsClientIsNull() {
       final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-        new TestableAmazonSqsConsumer(null, queueProperty, objectMapper, pendingRequests, queueRequests, executorService, publishDecorator)
+        new TestableAmazonSqsConsumer(null, queueProperty, jsonMapper, pendingRequests, queueRequests, executorService, publishDecorator)
       );
 
       assertThat(thrown.getMessage(), containsString("amazonSqsClient cannot be null"));
@@ -156,13 +156,13 @@ class AbstractAmazonSqsConsumerTest {
         new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, null, pendingRequests, queueRequests, executorService, publishDecorator)
       );
 
-      assertThat(thrown.getMessage(), containsString("objectMapper cannot be null"));
+      assertThat(thrown.getMessage(), containsString("jsonMapper cannot be null"));
     }
 
     @Test
     void testConstructorThrowsNpeWhenExecutorServiceIsNull() {
       final NullPointerException thrown = assertThrows(NullPointerException.class, () ->
-        new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, queueRequests, null, publishDecorator)
+        new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, jsonMapper, pendingRequests, queueRequests, null, publishDecorator)
       );
 
       assertThat(thrown.getMessage(), containsString("executorService cannot be null"));
@@ -310,7 +310,7 @@ class AbstractAmazonSqsConsumerTest {
 
         mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
 
-        try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, queueRequests, executorService, publishDecorator)) {
+        try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, jsonMapper, pendingRequests, queueRequests, executorService, publishDecorator)) {
           when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
           when(executorService.shutdownNow()).thenReturn(Collections.singletonList(mock()));
           when(scheduledExecutorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
@@ -336,7 +336,7 @@ class AbstractAmazonSqsConsumerTest {
 
         mockedStatic.when(() -> Executors.newSingleThreadScheduledExecutor(any())).thenReturn(scheduledExecutorService);
 
-        try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, queueRequests, executorService, publishDecorator)) {
+        try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, jsonMapper, pendingRequests, queueRequests, executorService, publishDecorator)) {
           when(scheduledExecutorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
           when(scheduledExecutorService.shutdownNow()).thenReturn(Collections.singletonList(mock()));
           when(executorService.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
@@ -766,13 +766,13 @@ class AbstractAmazonSqsConsumerTest {
   }
 
   private void context(final TryConsumer<TestableAmazonSqsConsumer> consumer) throws Exception {
-    try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, queueRequests, executorService, publishDecorator)) {
+    try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, jsonMapper, pendingRequests, queueRequests, executorService, publishDecorator)) {
       consumer.accept(sqsConsumer);
     }
   }
 
   private void context(final UnaryOperator<Object> trackingDecorator, final TryConsumer<TestableAmazonSqsConsumer> consumer) throws Exception {
-    try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, objectMapper, pendingRequests, queueRequests, executorService, trackingDecorator)) {
+    try (final TestableAmazonSqsConsumer sqsConsumer = new TestableAmazonSqsConsumer(amazonSqsClient, queueProperty, jsonMapper, pendingRequests, queueRequests, executorService, trackingDecorator)) {
       consumer.accept(sqsConsumer);
     }
   }
@@ -791,12 +791,12 @@ class AbstractAmazonSqsConsumerTest {
     TestableAmazonSqsConsumer(
         final Object amazonSqsClient,
         final QueueProperty queueProperty,
-        final ObjectMapper objectMapper,
+        final JsonMapper jsonMapper,
         final ConcurrentMap<String, ListenableFuture<ResponseSuccessEntry, ResponseFailEntry>> pendingRequests,
         final BlockingQueue<RequestEntry<String>> queueRequests,
         final ExecutorService executorService,
         final UnaryOperator<Object> publishDecorator) {
-      super(amazonSqsClient, queueProperty, objectMapper, pendingRequests, queueRequests, executorService, publishDecorator);
+      super(amazonSqsClient, queueProperty, jsonMapper, pendingRequests, queueRequests, executorService, publishDecorator);
     }
 
     @Override
