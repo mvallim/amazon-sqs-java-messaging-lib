@@ -65,7 +65,7 @@ com.amazon.sqs.messaging.lib
 
 ## Dependencies
 
-Managed by parent POM `com.github.mvallim:amazon-sqs-java-messaging-lib:1.4.0`:
+Managed by parent POM `com.github.mvallim:amazon-sqs-java-messaging-lib:1.4.1`:
 
 ```text
 org.slf4j:slf4j-api:2.0.6
@@ -88,7 +88,7 @@ This module is not used directly. Import either `-v1` or `-v2`:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sqs-java-messaging-lib-v1</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.1</version>
 </dependency>
 ```
 
@@ -96,6 +96,6 @@ This module is not used directly. Import either `-v1` or `-v2`:
 <dependency>
     <groupId>com.github.mvallim</groupId>
     <artifactId>amazon-sqs-java-messaging-lib-v2</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.1</version>
 </dependency>
 ```
