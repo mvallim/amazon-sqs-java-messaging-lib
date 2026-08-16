@@ -38,6 +38,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.UnaryOperator;
 
+import org.apache.fory.json.ForyJson;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -267,8 +268,8 @@ class AbstractAmazonSqsTemplateTest {
     final QueueProperty queueProperty = mock(QueueProperty.class);
     final AbstractAmazonSqsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSqsTemplate.Builder<>(b -> null, new Object(), queueProperty);
 
-    assertThat(builder.getObjectMapper(), is(notNullValue()));
-    assertThat(builder.getObjectMapper(), is(instanceOf(ObjectMapper.class)));
+    assertThat(builder.getJsonMapper(), is(notNullValue()));
+    assertThat(builder.getJsonMapper(), is(instanceOf(JsonMapperFactory.JsonMapperJackson.class)));
   }
 
   @Test
@@ -420,12 +421,23 @@ class AbstractAmazonSqsTemplateTest {
   @Test
   void testBuilderSetsObjectMapper() {
     final QueueProperty queueProperty = mock(QueueProperty.class);
-    final ObjectMapper customMapper = new ObjectMapper();
 
     final AbstractAmazonSqsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSqsTemplate.Builder<>(b -> null, new Object(), queueProperty);
-    builder.objectMapper(customMapper);
+    builder.objectMapper(new ObjectMapper());
 
-    assertThat(builder.getObjectMapper(), is(equalTo(customMapper)));
+    assertThat(builder.getJsonMapper(), is(notNullValue()));
+    assertThat(builder.getJsonMapper(), is(instanceOf(JsonMapperFactory.JsonMapperJackson.class)));
+  }
+
+  @Test
+  void testBuilderSetsForyJsonMapper() {
+    final QueueProperty queueProperty = mock(QueueProperty.class);
+
+    final AbstractAmazonSqsTemplate.Builder<Object, Object, Object, String, ?> builder = new AbstractAmazonSqsTemplate.Builder<>(b -> null, new Object(), queueProperty);
+    builder.foryJson(ForyJson.builder().build());
+
+    assertThat(builder.getJsonMapper(), is(notNullValue()));
+    assertThat(builder.getJsonMapper(), is(instanceOf(JsonMapperFactory.JsonMapperFory.class)));
   }
 
   @Test

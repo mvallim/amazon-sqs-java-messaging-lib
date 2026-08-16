@@ -20,12 +20,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.amazon.sqs.messaging.lib.exception.PoisonRequestEntryException;
 import com.amazon.sqs.messaging.lib.model.RequestEntry;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -38,10 +37,17 @@ import lombok.ToString;
 /**
  * Factory for creating internal request entries and converting request payloads.
  */
-@RequiredArgsConstructor
 final class RequestEntryInternalFactory {
 
-  private final ObjectMapper objectMapper;
+  private final JsonMapper jsonMapper;
+
+  private RequestEntryInternalFactory(final JsonMapper jsonMapper) {
+    this.jsonMapper = Objects.requireNonNull(jsonMapper, "jsonMapper cannot be null");
+  }
+
+  public static RequestEntryInternalFactory build(final JsonMapper jsonMapper) {
+    return new RequestEntryInternalFactory(jsonMapper);
+  }
 
   /**
    * Creates an internal request entry from a request entry and its serialized payload.
@@ -81,13 +87,9 @@ final class RequestEntryInternalFactory {
    * @throws PoisonRequestEntryException if the payload cannot be serialized
    */
   public byte[] convertPayload(final RequestEntry<?> requestEntry) throws PoisonRequestEntryException {
-    try {
-      return requestEntry.getValue() instanceof String
-        ? String.class.cast(requestEntry.getValue()).getBytes(StandardCharsets.UTF_8)
-        : objectMapper.writeValueAsBytes(requestEntry.getValue());
-    } catch (final JsonProcessingException ex) {
-      throw PoisonRequestEntryException.fromJsonProcessing(ex.getMessage(), ex);
-    }
+    return requestEntry.getValue() instanceof String
+      ? String.class.cast(requestEntry.getValue()).getBytes(StandardCharsets.UTF_8)
+      : jsonMapper.toJsonBytes(requestEntry.getValue());
   }
 
   /**

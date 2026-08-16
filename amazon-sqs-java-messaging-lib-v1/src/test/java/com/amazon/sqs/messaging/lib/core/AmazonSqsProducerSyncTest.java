@@ -68,7 +68,7 @@ class AmazonSqsProducerSyncTest {
       .queueUrl("http://localhost/000000000000/queue.fifo")
       .build();
 
-    sqsTemplate = new AmazonSqsTemplate<>(amazonSQS, queueProperty);
+    sqsTemplate = AmazonSqsTemplate.builder(amazonSQS, queueProperty).build();
   }
 
   @Test

@@ -20,10 +20,11 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -34,27 +35,28 @@ import lombok.ToString;
  */
 @Getter
 @ToString
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder(setterPrefix = "with")
+@Builder(toBuilder = true, setterPrefix = "with")
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class RequestEntry<T> {
 
   /**
    * The timestamp (in nanoseconds) when the request entry was created.
    */
+  @NonNull
   @Builder.Default
-  private final long createTime = System.nanoTime();
+  private final Long createTime = System.nanoTime();
 
   /**
    * The unique identifier of the request.
    */
+  @NonNull
   @Builder.Default
   private final String id = UUID.randomUUID().toString();
 
   /**
    * The message payload.
    */
-  private T value;
+  private final T value;
 
   /**
    * The message headers to be sent as SQS message attributes.
@@ -65,11 +67,11 @@ public class RequestEntry<T> {
   /**
    * The message group ID for FIFO queues.
    */
-  private String groupId;
+  private final String groupId;
 
   /**
    * The message deduplication ID for FIFO queues.
    */
-  private String deduplicationId;
+  private final String deduplicationId;
 
 }
