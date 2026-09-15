@@ -36,6 +36,7 @@ import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.AmazonSQSException;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.SendMessageBatchResult;
@@ -141,13 +142,20 @@ class AmazonSqsConsumerImpl<E> extends AbstractAmazonSqsConsumer<AmazonSQS, Send
     );
 
     publishBatchResult.getFailed().forEach(entry ->
-      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture ->
-        listenableFuture.fail(ResponseFailEntry.builder()
-          .withId(entry.getId())
-          .withCode(entry.getCode())
-          .withMessage(entry.getMessage())
-          .withSenderFault(entry.getSenderFault())
-          .build())
+      Optional.ofNullable(pendingRequests.remove(entry.getId())).ifPresent(listenableFuture -> {
+          final AmazonServiceException throwable = new AmazonSQSException(entry.getMessage());
+          throwable.setErrorCode(entry.getCode());
+          throwable.setErrorMessage(entry.getMessage());
+          throwable.setServiceName("SQS");
+
+          listenableFuture.fail(ResponseFailEntry.builder()
+            .withId(entry.getId())
+            .withCode(entry.getCode())
+            .withMessage(entry.getMessage())
+            .withSenderFault(entry.getSenderFault())
+            .withThrowable(throwable)
+            .build());
+        }
       )
     );
   }

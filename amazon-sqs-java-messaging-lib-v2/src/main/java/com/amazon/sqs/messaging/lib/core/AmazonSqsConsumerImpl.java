@@ -35,11 +35,13 @@ import com.amazon.sqs.messaging.lib.model.RequestEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseFailEntry;
 import com.amazon.sqs.messaging.lib.model.ResponseSuccessEntry;
 
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
+import software.amazon.awssdk.services.sqs.model.SqsException;
 
 // @formatter:off
 /**
@@ -143,13 +145,26 @@ class AmazonSqsConsumerImpl<E> extends AbstractAmazonSqsConsumer<SqsClient, Send
     );
 
     publishBatchResult.failed().forEach(entry ->
-      Optional.ofNullable(pendingRequests.remove(entry.id())).ifPresent(listenableFuture ->
-        listenableFuture.fail(ResponseFailEntry.builder()
-          .withId(entry.id())
-          .withCode(entry.code())
-          .withMessage(entry.message())
-          .withSenderFault(entry.senderFault())
-          .build())
+      Optional.ofNullable(pendingRequests.remove(entry.id())).ifPresent(listenableFuture -> {
+        final AwsErrorDetails awsErrorDetails = AwsErrorDetails.builder()
+            .errorCode(entry.code())
+            .errorMessage(entry.message())
+            .serviceName("SQS")
+            .build();
+
+          final AwsServiceException throwable = SqsException.builder()
+            .awsErrorDetails(awsErrorDetails)
+            .message(entry.message())
+            .build();
+
+          listenableFuture.fail(ResponseFailEntry.builder()
+            .withId(entry.id())
+            .withCode(entry.code())
+            .withMessage(entry.message())
+            .withSenderFault(entry.senderFault())
+            .withThrowable(throwable)
+            .build());
+        }
       )
     );
   }
