@@ -17,6 +17,7 @@
 package com.amazon.sqs.messaging.lib.core;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,20 +45,28 @@ abstract class AbstractMessageAttributes<V> {
    */
   protected static final String BINARY = "Binary";
 
+  protected static final Integer BINARY_SIZE = BINARY.getBytes(StandardCharsets.UTF_8).length;
+
   /**
    * Data type constant for string message attributes.
    */
   protected static final String STRING = "String";
+
+  protected static final Integer STRING_SIZE = STRING.getBytes(StandardCharsets.UTF_8).length;
 
   /**
    * Data type constant for number message attributes.
    */
   protected static final String NUMBER = "Number";
 
+  protected static final Integer NUMBER_SIZE = NUMBER.getBytes(StandardCharsets.UTF_8).length;
+
   /**
    * Data type constant for string array message attributes.
    */
   protected static final String STRING_ARRAY = "String.Array";
+
+  protected static final Integer STRING_ARRAY_SIZE = STRING_ARRAY.getBytes(StandardCharsets.UTF_8).length;
 
   /**
    * Converts a map of message headers into typed message attributes.
@@ -112,7 +121,7 @@ abstract class AbstractMessageAttributes<V> {
       );
     }
 
-    return "[ " + String.join(", ", collect) + " ]";
+    return String.format("[%s]", String.join(",", collect));
   }
 
   /**
