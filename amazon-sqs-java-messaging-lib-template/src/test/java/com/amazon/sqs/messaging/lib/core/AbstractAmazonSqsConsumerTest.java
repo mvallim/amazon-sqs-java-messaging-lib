@@ -117,6 +117,7 @@ class AbstractAmazonSqsConsumerTest {
     when(queueProperty.getLinger()).thenReturn(LINGER_MS);
     when(queueProperty.getMaxBatchSize()).thenReturn(MAX_BATCH_SIZE);
     when(queueProperty.isFifo()).thenReturn(false);
+    when(queueProperty.getMaxMessageSize()).thenReturn(256 * TestableAmazonSqsConsumer.KB);
   }
 
   @Nested
@@ -605,7 +606,7 @@ class AbstractAmazonSqsConsumerTest {
       when(queueProperty.isFifo()).thenReturn(true);
 
       context(consumer -> {
-        final String payloadAtThreshold = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold());
+        final String payloadAtThreshold = buildPayloadOfBytes(queueProperty.getMaxMessageSize());
         queueRequests.put(buildRequestEntry(payloadAtThreshold));
 
         await()
@@ -621,7 +622,7 @@ class AbstractAmazonSqsConsumerTest {
       when(queueProperty.isFifo()).thenReturn(true);
 
       context(consumer -> {
-        final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold() + 1);
+        final String oversizedPayload = buildPayloadOfBytes(queueProperty.getMaxMessageSize() + 1);
         queueRequests.put(buildRequestEntry(oversizedPayload));
 
         await()
@@ -638,7 +639,7 @@ class AbstractAmazonSqsConsumerTest {
       when(queueProperty.getMaxBatchSize()).thenReturn(10);
 
       context(consumer -> {
-        final int halfThreshold = TestableAmazonSqsConsumer.batchSizeBytesThreshold() / 2;
+        final int halfThreshold = queueProperty.getMaxMessageSize() / 2;
         queueRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
         queueRequests.put(buildRequestEntry(buildPayloadOfBytes(halfThreshold)));
         queueRequests.put(buildRequestEntry("small-overflow"));
@@ -657,7 +658,7 @@ class AbstractAmazonSqsConsumerTest {
       when(queueProperty.getMaxBatchSize()).thenReturn(10);
 
       context(consumer -> {
-        final int fullThreshold = TestableAmazonSqsConsumer.batchSizeBytesThreshold();
+        final int fullThreshold = queueProperty.getMaxMessageSize();
         queueRequests.put(buildRequestEntry(buildPayloadOfBytes(fullThreshold)));
         queueRequests.put(buildRequestEntry("second-entry"));
 
@@ -693,7 +694,7 @@ class AbstractAmazonSqsConsumerTest {
       when(queueProperty.getMaxBatchSize()).thenReturn(10);
 
       context(consumer -> {
-        final int chunkSize = (TestableAmazonSqsConsumer.batchSizeBytesThreshold() / 3) + 1;
+        final int chunkSize = (queueProperty.getMaxMessageSize() / 3) + 1;
         queueRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
         queueRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
         queueRequests.put(buildRequestEntry(buildPayloadOfBytes(chunkSize)));
@@ -711,7 +712,7 @@ class AbstractAmazonSqsConsumerTest {
       when(queueProperty.isFifo()).thenReturn(true);
 
       context(consumer -> {
-        final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold() + 100);
+        final String oversizedPayload = buildPayloadOfBytes(queueProperty.getMaxMessageSize() + 100);
         queueRequests.put(buildRequestEntry(oversizedPayload));
 
         await()
@@ -731,7 +732,7 @@ class AbstractAmazonSqsConsumerTest {
       when(queueProperty.isFifo()).thenReturn(true);
 
       final String poisonId = "poison-id";
-      final String oversizedPayload = buildPayloadOfBytes(TestableAmazonSqsConsumer.batchSizeBytesThreshold() + 100);
+      final String oversizedPayload = buildPayloadOfBytes(queueProperty.getMaxMessageSize() + 100);
       final RequestEntry<String> poisonEntry = RequestEntry.<String>builder()
         .withId(poisonId)
         .withValue(oversizedPayload)
@@ -781,7 +782,7 @@ class AbstractAmazonSqsConsumerTest {
 
   static class TestableAmazonSqsConsumer extends AbstractAmazonSqsConsumer<Object, Object, Object, String> implements AutoCloseable {
 
-    private static final int BATCH_SIZE_BYTES_THRESHOLD = 1024 * 1024;
+    private static final int KB = 1024;
 
     private final AtomicInteger publishCallCount = new AtomicInteger(0);
     private final AtomicInteger handleErrorCallCount = new AtomicInteger(0);
@@ -855,10 +856,6 @@ class AbstractAmazonSqsConsumerTest {
 
     int getTotalPublishedEntries() {
       return publishedBatchSizes.stream().mapToInt(Integer::intValue).sum();
-    }
-
-    static int batchSizeBytesThreshold() {
-      return BATCH_SIZE_BYTES_THRESHOLD;
     }
 
     @Override

@@ -68,11 +68,6 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    */
   private static final Integer KB = 1024;
 
-  /**
-   * Maximum batch size threshold of 1024 KB imposed by Amazon SQS.
-   */
-  private static final Integer BATCH_SIZE_BYTES_THRESHOLD = 1024 * KB;
-
   /** Class logger. */
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAmazonSqsConsumer.class);
 
@@ -123,7 +118,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
     this.queueProperty = Objects.requireNonNull(queueProperty, "queueProperty cannot be null");
     this.amazonSqsClient = Objects.requireNonNull(amazonSqsClient, "amazonSqsClient cannot be null");
     this.executorService = Objects.requireNonNull(executorService, "executorService cannot be null");
-    this.requestEntryInternalFactory = RequestEntryInternalFactory.build(jsonMapper);
+    requestEntryInternalFactory = RequestEntryInternalFactory.build(jsonMapper);
     this.pendingRequests = pendingRequests;
     this.queueRequests = queueRequests;
     this.publishDecorator = publishDecorator;
@@ -265,7 +260,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    * @return true if the request can be added
    */
   private boolean canAddToBatch(final int batchSizeBytes, final int requestEntriesSize, final RequestEntry<E> request) {
-    return (batchSizeBytes < BATCH_SIZE_BYTES_THRESHOLD)
+    return (batchSizeBytes < queueProperty.getMaxMessageSize())
       && (requestEntriesSize < queueProperty.getMaxBatchSize())
       && Objects.nonNull(request);
   }
@@ -277,7 +272,7 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
    * @return true if the batch is still within the size limit
    */
   private boolean canAddPayload(final int batchSizeBytes) {
-    return batchSizeBytes <= BATCH_SIZE_BYTES_THRESHOLD;
+    return batchSizeBytes <= queueProperty.getMaxMessageSize();
   }
 
   /**
@@ -304,8 +299,9 @@ abstract class AbstractAmazonSqsConsumer<C, R, O, E> implements Runnable, Amazon
 
         final Integer messageSize = messageBodySize + messageAttributesSize;
 
-        if (messageSize > BATCH_SIZE_BYTES_THRESHOLD) {
-          throw PoisonRequestEntryException.fromMaximumAllowedMessage("The maximum allowed message size exceeding 1024KB (1,048,576 bytes).");
+        if (messageSize > queueProperty.getMaxMessageSize()) {
+          final String message = String.format("The maximum allowed message size exceeding %dKB (%,d bytes).", queueProperty.getMaxMessageSize() / KB, queueProperty.getMaxMessageSize());
+          throw PoisonRequestEntryException.fromMaximumAllowedMessage(message);
         }
 
         if (canAddPayload(batchSizeBytes.get() + messageSize)) {
