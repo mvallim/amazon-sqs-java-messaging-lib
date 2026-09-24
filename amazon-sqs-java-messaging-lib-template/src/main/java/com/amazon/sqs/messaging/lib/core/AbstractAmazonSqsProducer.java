@@ -73,11 +73,14 @@ abstract class AbstractAmazonSqsProducer<E> implements AmazonSqsProducer<E> {
     } else {
       final ListenableFutureImpl listenableFutureImpl = new ListenableFutureImpl(Runnable::run);
 
+      final String message = String.format("Producer is currently in %s mode; no further messages will be accepted.", state.get().name());
+
       listenableFutureImpl.fail(ResponseFailEntry.builder()
         .withCode("000")
         .withId(requestEntry.getId())
-        .withMessage(String.format("Producer is currently in %s mode; no further messages will be accepted.", state.get().name()))
+        .withMessage(message)
         .withSenderFault(true)
+        .withThrowable(new IllegalStateException(message))
         .build());
 
       return listenableFutureImpl;

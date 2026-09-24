@@ -51,7 +51,15 @@ import lombok.ToString;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class QueueProperty {
 
+  private static final int KB = 1024;
+
   private static final long DEFAULT_LINGER = 10L;
+
+  private static final int DEFAULT_MESSAGE_SIZE = 256 * KB;
+
+  private static final int MIN_MESSAGE_SIZE = KB;
+
+  private static final int MAX_MESSAGE_SIZE = 1024 * KB;
 
   /**
    * Whether the queue is a FIFO queue.
@@ -77,6 +85,11 @@ public class QueueProperty {
    * The maximum number of messages per batch.
    */
   private final int maxBatchSize;
+
+  /**
+   * The maximum message size in bytes.
+   */
+  private final int maxMessageSize;
 
   /**
    * Validates {@link QueueProperty} instances against the SQS constraints for
@@ -109,6 +122,10 @@ public class QueueProperty {
       ruleFor("linger", QueueProperty::getLinger)
         .must(greaterThanOrEqual(DEFAULT_LINGER))
           .withMessage("'linger' must be greater than or equal to 10 (ten)");
+
+      ruleFor("maxMessageSize", QueueProperty::getMaxMessageSize)
+        .must(betweenInclusive(MIN_MESSAGE_SIZE, MAX_MESSAGE_SIZE))
+          .withMessage("'maxMessageSize' must be in the range of 1Kb (1,024 bytes) to 1024Kb (1,048,576 bytes)");
 
       ruleFor("maxBatchSize", QueueProperty::getMaxBatchSize)
         .must(betweenInclusive(1, 10))
@@ -149,6 +166,14 @@ public class QueueProperty {
     private boolean linger$set;
 
     /**
+     * Tracks whether {@code maxMessageSize(int)} was explicitly invoked.
+     *
+     * <p>This flag allows applying {@link QueueProperty#DEFAULT_MESSAGE_SIZE} only when
+     * no explicit value was provided through the builder.
+     */
+    private boolean maxMessageSize$set;
+
+    /**
      * Sets the batching linger time in milliseconds.
      *
      * @param linger the linger time in milliseconds
@@ -161,6 +186,18 @@ public class QueueProperty {
     }
 
     /**
+     * Sets the maximum message size in bytes.
+     *
+     * @param maxMessageSize the maximum message size in bytes
+     * @return this builder
+     */
+    public QueuePropertyBuilder maxMessageSize(final int maxMessageSize) {
+      this.maxMessageSize = maxMessageSize;
+      maxMessageSize$set = true;
+      return this;
+    }
+
+    /**
      * Builds the {@link QueueProperty}, applying the default linger value if none
      * was explicitly set and validating the result.
      *
@@ -169,8 +206,9 @@ public class QueueProperty {
      */
     public QueueProperty build() {
       final long linger = linger$set ? this.linger : DEFAULT_LINGER;
+      final int maxMessageSize = maxMessageSize$set ? this.maxMessageSize : DEFAULT_MESSAGE_SIZE;
 
-      final QueueProperty queueProperty = new QueueProperty(fifo, maximumPoolSize, queueUrl, linger, maxBatchSize);
+      final QueueProperty queueProperty = new QueueProperty(fifo, maximumPoolSize, queueUrl, linger, maxBatchSize, maxMessageSize);
 
       final ValidationResult validationResult = QueuePropertyValidator.INSTANCE.validate(queueProperty);
 

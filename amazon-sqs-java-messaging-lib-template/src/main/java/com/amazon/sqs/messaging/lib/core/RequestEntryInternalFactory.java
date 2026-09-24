@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 import com.amazon.sqs.messaging.lib.exception.PoisonRequestEntryException;
@@ -177,12 +178,15 @@ final class RequestEntryInternalFactory {
      */
     public static final MessageAttributesInternal INSTANCE = new MessageAttributesInternal();
 
+    private final ToIntFunction<Class<? extends Number>> computeSize = clazz ->
+      NUMBER.concat(".").concat(clazz.getName()).getBytes(StandardCharsets.UTF_8).length;
+
     /**
      * {@inheritDoc}
      */
     @Override
     public Integer getEnumMessageAttribute(final Enum<?> value) {
-      return value.name().getBytes(StandardCharsets.UTF_8).length;
+      return STRING_SIZE + value.name().getBytes(StandardCharsets.UTF_8).length;
     }
 
     /**
@@ -190,7 +194,7 @@ final class RequestEntryInternalFactory {
      */
     @Override
     public Integer getStringMessageAttribute(final String value) {
-      return value.getBytes(StandardCharsets.UTF_8).length;
+      return STRING_SIZE + value.getBytes(StandardCharsets.UTF_8).length;
     }
 
     /**
@@ -198,7 +202,7 @@ final class RequestEntryInternalFactory {
      */
     @Override
     public Integer getNumberMessageAttribute(final Number value) {
-      return value.toString().getBytes(StandardCharsets.UTF_8).length;
+      return value.toString().getBytes(StandardCharsets.UTF_8).length + computeSize.applyAsInt(value.getClass());
     }
 
     /**
@@ -206,7 +210,7 @@ final class RequestEntryInternalFactory {
      */
     @Override
     public Integer getBinaryMessageAttribute(final ByteBuffer value) {
-      return value.remaining();
+      return BINARY_SIZE + value.remaining();
     }
 
     /**
@@ -214,7 +218,7 @@ final class RequestEntryInternalFactory {
      */
     @Override
     public Integer getStringArrayMessageAttribute(final List<?> values) {
-      return stringArray(values).getBytes(StandardCharsets.UTF_8).length;
+      return STRING_ARRAY_SIZE + stringArray(values).getBytes(StandardCharsets.UTF_8).length;
     }
 
   }
